@@ -148,7 +148,7 @@ function MatchedTenantCard({
     ? `${templateMessage}\n\nView Property details:`
     : "";
 
-  const propertyPath = `/property/${selectedProperty.id}`;
+  const propertyPath = `/property-view/${selectedProperty.id}`;
   const propertyUrl = `${window.location.origin}${propertyPath}`;
 
   const fullMessageForShare = `${messageText}\n${propertyUrl}`;

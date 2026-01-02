@@ -15,6 +15,8 @@ import AddProperty from "@/pages/AddProperty";
 import TenantDashboard from "@/pages/dashboardTenant";
 import TemplateEditorPage from "@/pages/TemplateEditorPage";
 import TenantEdit from "@/pages/TenantEdit";
+import PropertyUserView from "@/pages/property-user-view";
+
 
 export default function App() {
   return (
@@ -32,6 +34,7 @@ export default function App() {
           <Route path="/addproperties" element={<AddProperty />} />
           <Route path="/settings" element={<TemplateEditorPage />} />
           <Route path="/tenants/edit/:id" element={<TenantEdit />} />
+          <Route path="/property-view/:id" element={<PropertyUserView />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
 

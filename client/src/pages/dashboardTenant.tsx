@@ -132,7 +132,7 @@ function MatchedPropertyCard({
     ? `${templateMessage}\n\nView Property details:`
     : "";
 
-    const propertyPath = `/property/${property.id}`;
+    const propertyPath = `/property-view/${property.id}`;
     const propertyUrl = `${window.location.origin}${propertyPath}`;
 
     const fullMessageForShare = `${messageText}\n${propertyUrl}`;
