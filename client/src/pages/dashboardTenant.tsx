@@ -40,7 +40,6 @@ import type {
 import { Link } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 
-
 /* -------------------- Helpers -------------------- */
 const getLoggedInAgentName = () => {
   try {
@@ -128,18 +127,17 @@ function MatchedPropertyCard({
   //   ? `${templateMessage}\n\nView Property details:\n${window.location.origin}/property/${property.id}`
   //   : "";
 
-    const messageText = templateMessage
+  const messageText = templateMessage
     ? `${templateMessage}\n\nView Property details:`
     : "";
 
-    const propertyPath = `/property-view/${property.id}`;
-    const propertyUrl = `${window.location.origin}${propertyPath}`;
+  const propertyPath = `/property-view/${property.id}`;
+  const propertyUrl = `${window.location.origin}${propertyPath}`;
 
-    const fullMessageForShare = `${messageText}\n${propertyUrl}`;
+  const fullMessageForShare = `${messageText}\n${propertyUrl}`;
 
   const [copied, setCopied] = useState(false);
-    const navigate = useNavigate(); // 👈 ADD THIS
-
+  const navigate = useNavigate(); // 👈 ADD THIS
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(fullMessageForShare);
@@ -354,16 +352,27 @@ export default function TenantDashboard() {
   const matchedProperties = useMemo(() => {
     if (!selectedTenant || !properties) return [];
 
+    const tenantBudgets = parseBudgetLimits(selectedTenant.Current_budget);
+    const tenantRooms = parseRoomNumbers(selectedTenant.Number_of_Rooms);
+
     return properties.filter((p) => {
       const price = Number(p.Asking_price);
       const rooms = Number(p.How_many_rooms);
+
       if (isNaN(price) || isNaN(rooms)) return false;
 
       const isAvailabilityMatch =
         filters.availability === "all" ||
         p.Is_the_apartment_available === filters.availability;
 
-      return isAvailabilityMatch;
+      const isPriceMatch =
+        tenantBudgets.length === 0 ||
+        tenantBudgets.some((b) => price >= filters.minRent && price <= b);
+
+      const isRoomMatch =
+        tenantRooms.length === 0 || tenantRooms.some((r) => rooms >= r);
+
+      return isAvailabilityMatch && isPriceMatch && isRoomMatch;
     });
   }, [selectedTenant, properties, filters]);
 
