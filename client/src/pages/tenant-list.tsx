@@ -86,9 +86,9 @@ export default function TenantList() {
 
   return (
     <Layout>
-      <div className="flex gap-6">
+      <div className="flex flex-col lg:flex-row gap-6">
         {/* FILTER SIDEBAR */}
-        <aside className="w-64 bg-white p-4 rounded shadow space-y-4">
+        <aside className="w-full lg:w-64 bg-white p-4 rounded shadow space-y-4">
           <h2 className="font-semibold text-lg">Filters</h2>
           <div>
             <label className="block text-sm mb-1">Status</label>
@@ -158,57 +158,61 @@ export default function TenantList() {
           ) : filteredTenants.length === 0 ? (
             <p className="p-4 text-muted-foreground">No tenants found</p>
           ) : (
-            <table className="w-full text-sm">
-              <thead className="bg-gray-100 text-left">
-                <tr>
-                  <th className="p-3">Name</th>
-                  <th className="p-3">Phone</th>
-                  <th className="p-3">Rooms</th>
-                  <th className="p-3">Budget</th>
-                  <th className="p-3">Status</th>
-                  <th className="p-3">Edit</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredTenants.map((t) => (
-                  <tr key={t.id} className="border-t hover:bg-gray-50">
-                    <td className="p-3">{t.Full_name}</td>
-                    <td className="p-3">{t.Phone_number}</td>
-                    <td className="p-3">
-                      {normalizeToArray(t.Number_of_Rooms).join(", ")}
-                    </td>
-                    <td className="p-3">
-                      {normalizeToArray(t.Current_budget).join(", ")}
-                    </td>
-                    <td className="p-3">
-                      <Switch
-                        checked={t.Status === "Active"}
-                        onChange={() => handleToggleStatus(t)}
-                        className={`${
-                          t.Status === "Active" ? "bg-green-500" : "bg-gray-200"
-                        } relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none`}
-                      >
-                        <span
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-100 text-left">
+                  <tr>
+                    <th className="p-3">Name</th>
+                    <th className="p-3">Phone</th>
+                    <th className="p-3">Rooms</th>
+                    <th className="p-3">Budget</th>
+                    <th className="p-3">Status</th>
+                    <th className="p-3">Edit</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredTenants.map((t) => (
+                    <tr key={t.id} className="border-t hover:bg-gray-50">
+                      <td className="p-3">{t.Full_name}</td>
+                      <td className="p-3">{t.Phone_number}</td>
+                      <td className="p-3">
+                        {normalizeToArray(t.Number_of_Rooms).join(", ")}
+                      </td>
+                      <td className="p-3">
+                        {normalizeToArray(t.Current_budget).join(", ")}
+                      </td>
+                      <td className="p-3">
+                        <Switch
+                          checked={t.Status === "Active"}
+                          onChange={() => handleToggleStatus(t)}
                           className={`${
                             t.Status === "Active"
-                              ? "translate-x-6"
-                              : "translate-x-1"
-                          } inline-block h-4 w-4 transform rounded-full bg-white transition-transform`}
-                        />
-                      </Switch>
-                    </td>
-                    <td className="p-3 text-right">
-                      <button
-                        onClick={() => navigate(`/tenants/edit/${t.id}`)}
-                        className="text-blue-600 hover:text-blue-800"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                              ? "bg-green-500"
+                              : "bg-gray-200"
+                          } relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none`}
+                        >
+                          <span
+                            className={`${
+                              t.Status === "Active"
+                                ? "translate-x-6"
+                                : "translate-x-1"
+                            } inline-block h-4 w-4 transform rounded-full bg-white transition-transform`}
+                          />
+                        </Switch>
+                      </td>
+                      <td className="p-3 text-right">
+                        <button
+                          onClick={() => navigate(`/tenants/edit/${t.id}`)}
+                          className="text-blue-600 hover:text-blue-800"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       </div>
