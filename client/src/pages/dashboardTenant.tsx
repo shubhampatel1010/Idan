@@ -38,6 +38,8 @@ import type {
   PropertyFilters,
 } from "@/lib/types";
 import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+
 
 /* -------------------- Helpers -------------------- */
 const getLoggedInAgentName = () => {
@@ -122,14 +124,25 @@ function MatchedPropertyCard({
   //   property.Property_Address || "Property",
   //   `${window.location.origin}/property/${property.id}`
   // );
-  const message = templateMessage
-    ? `${templateMessage}\n\nView Property details:\n${window.location.origin}/property/${property.id}`
+  // const message = templateMessage
+  //   ? `${templateMessage}\n\nView Property details:\n${window.location.origin}/property/${property.id}`
+  //   : "";
+
+    const messageText = templateMessage
+    ? `${templateMessage}\n\nView Property details:`
     : "";
 
+    const propertyPath = `/property/${property.id}`;
+    const propertyUrl = `${window.location.origin}${propertyPath}`;
+
+    const fullMessageForShare = `${messageText}\n${propertyUrl}`;
+
   const [copied, setCopied] = useState(false);
+    const navigate = useNavigate(); // 👈 ADD THIS
+
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(message);
+    await navigator.clipboard.writeText(fullMessageForShare);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   };
@@ -196,7 +209,7 @@ function MatchedPropertyCard({
             <a
               href={`https://wa.me/${formatPhoneForWhatsApp(
                 tenant.Phone_number || ""
-              )}?text=${encodeURIComponent(message)}`}
+              )}?text=${encodeURIComponent(fullMessageForShare)}`}
               target="_blank"
               rel="noopener noreferrer"
               onClick={handleWhatsAppClick}
@@ -209,7 +222,16 @@ function MatchedPropertyCard({
               </Button>
             </a>
           </div>
-          {message}
+          <div className="space-y-1">
+            <p className="whitespace-pre-line">{messageText}</p>
+
+            <span
+              onClick={() => navigate(propertyPath)}
+              className="text-blue-600 underline cursor-pointer font-medium"
+            >
+              {propertyUrl}
+            </span>
+          </div>
         </div>
       </CardContent>
     </Card>
@@ -238,6 +260,8 @@ export default function TenantDashboard() {
   } = useQuery<Tenant[]>({
     queryKey: ["/api/tenants"],
     queryFn: fetchTenants,
+    staleTime: 0, // ensures data is considered stale immediately
+    refetchOnWindowFocus: true, // optional: refetch if user switches tab
   });
 
   const {
@@ -247,11 +271,19 @@ export default function TenantDashboard() {
   } = useQuery<Property[]>({
     queryKey: ["/api/properties"],
     queryFn: fetchProperties,
+    staleTime: 0, // ensures data is considered stale immediately
+    refetchOnWindowFocus: true, // optional: refetch if user switches tab
   });
 
-  const { data: templateData } = useQuery({
+  const {
+    data: templateData,
+    refetch: refetchTemplate,
+    isFetching: isTemplateFetching,
+  } = useQuery({
     queryKey: ["/api/templateMessage"],
     queryFn: fetchTemplateMessage,
+    staleTime: 0, // ensures data is considered stale immediately
+    refetchOnWindowFocus: true, // optional: refetch if user switches tab
   });
 
   const templateMessage = templateData || "";

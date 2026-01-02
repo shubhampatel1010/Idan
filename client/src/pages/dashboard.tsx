@@ -286,6 +286,8 @@ export default function Dashboard() {
   } = useQuery<Property[]>({
     queryKey: ["/api/properties"],
     queryFn: fetchProperties,
+    staleTime: 0, // ensures data is considered stale immediately
+  refetchOnWindowFocus: true, // optional: refetch if user switches tab
   });
 
   const {
@@ -295,12 +297,21 @@ export default function Dashboard() {
   } = useQuery<Tenant[]>({
     queryKey: ["/api/tenants"],
     queryFn: fetchTenants,
+    staleTime: 0, // ensures data is considered stale immediately
+  refetchOnWindowFocus: true, // optional: refetch if user switches tab
   });
 
-  const { data: templateData } = useQuery({
-    queryKey: ["/api/templateMessage"],
-    queryFn: fetchTemplateMessage,
-  });
+ const {
+  data: templateData,
+  refetch: refetchTemplate,
+  isFetching: isTemplateFetching,
+} = useQuery({
+  queryKey: ["/api/templateMessage"],
+  queryFn: fetchTemplateMessage,
+  staleTime: 0, // ensures data is considered stale immediately
+  refetchOnWindowFocus: true, // optional: refetch if user switches tab
+});
+
 
   const templateMessage = templateData || "";
 
