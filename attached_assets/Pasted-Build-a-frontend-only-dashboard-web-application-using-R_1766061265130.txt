@@ -1,0 +1,283 @@
+Build a frontend-only dashboard web application using React (Vite).
+Do NOT use any backend or server.
+Use Airtable REST API directly from the frontend.
+Use React Router DOM for page navigation.
+
+🧩 Tech Stack
+
+React (Vite)
+
+React Router DOM
+
+Axios or Fetch API
+
+Airtable REST API (frontend usage)
+
+Simple CSS or Tailwind (optional)
+
+🗄️ Airtable Tables
+Property Table
+
+Columns:
+
+Property_ID
+
+Property_Name
+
+Address
+
+Neighborhood
+
+Property_Type
+
+Bedrooms
+
+Bathrooms
+
+Square_Meters
+
+Monthly_Rent_ILS
+
+Available_From
+
+Furnished
+
+Balcony
+
+Parking
+
+Pets_Allowed
+
+Floor
+
+Building_Floors
+
+Elevator
+
+Air_Conditioning
+
+Property_Images
+
+Description
+
+Status
+
+Date_Added
+
+Tenant Table
+
+Columns:
+
+Tenant_ID
+
+Full_Name
+
+Email
+
+Phone
+
+Profile_Photo
+
+Budget_Min_ILS
+
+Budget_Max_ILS
+
+Preferred_Neighborhoods
+
+Property_Type_Preference
+
+Min_Bedrooms
+
+Max_Bedrooms
+
+Move_In_Date
+
+Lease_Duration_Months
+
+Furnished_Required
+
+Parking_Required
+
+Pets
+
+Balcony_Required
+
+Max_Floor
+
+Elevator_Required
+
+Occupants
+
+Employment_Status
+
+Current_Location
+
+Date_Submitted
+
+Match_Status
+
+Notes
+
+📍 Routing (React Router DOM)
+
+Use React Router DOM and define routes:
+
+/ → Dashboard
+
+/properties → Property List
+
+/property/:id → Property View Page
+
+/property/:id/matches → Matched Tenants Page
+
+Each route must load a separate component.
+
+📊 Dashboard Page (/)
+
+Show Total Properties count
+
+Show Total Tenants count
+
+Fetch data directly from Airtable
+
+Add basic filters:
+
+Property Type
+
+Neighborhood
+
+Rent Range
+
+Bedrooms
+
+🏠 Property List Page (/properties)
+
+Display all properties (table or cards)
+
+Each property must show:
+
+Property name
+
+Rent
+
+Bedrooms
+
+Each property must have two buttons:
+
+View
+
+Matched
+
+👁️ Property View Page (/property/:id)
+
+When clicking View:
+
+Show all property details
+
+Display property images
+
+Show property description and features
+
+🔽 Bottom Section (IMPORTANT)
+
+Show Top 5 similar properties ONLY
+
+Matching must be calculated on the frontend
+
+👥 Matched Tenants Page (/property/:id/matches)
+
+When clicking Matched:
+
+Fetch tenants from Airtable
+
+Match tenants using:
+
+Budget range
+
+Neighborhood
+
+Property type
+
+Bedrooms
+
+Furnished
+
+Parking
+
+Pets
+
+Balcony
+
+Elevator
+
+Floor
+
+Display:
+
+Tenant name
+
+Match percentage
+
+Each tenant card must have:
+
+Send button
+
+✉️ Send Button Logic
+
+When clicking Send:
+
+Update Tenant record in Airtable:
+
+Save selected property details
+
+Save Property View Page URL
+
+Update Match_Status = "Sent"
+
+Use Airtable PATCH request directly from frontend
+
+🔐 Airtable Integration Rules
+
+Use Airtable REST API directly in React
+
+Store API key in .env as:
+
+VITE_AIRTABLE_API_KEY=
+VITE_AIRTABLE_BASE_ID=
+
+
+Use Authorization header:
+
+Authorization: Bearer YOUR_API_KEY
+
+🧠 Matching Logic
+
+Create a reusable function:
+
+Score matches based on matching fields
+
+Sort tenants by highest score
+
+Return top 5 tenants
+
+🎨 UI Requirements
+
+Simple and clean UI
+
+Responsive layout
+
+Loading and error states
+
+Buttons clearly visible
+
+🚀 Final Output
+
+Vite-based React app
+
+Frontend-only (NO backend)
+
+Airtable connected
+
+Routing with React Router DOM
+
+Fully functional dashboard and matching system
