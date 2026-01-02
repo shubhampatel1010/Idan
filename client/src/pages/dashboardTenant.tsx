@@ -161,16 +161,24 @@ function MatchedPropertyCard({
           <h4 className="text-sm font-medium truncate">
             {property.Property_Address}
           </h4>
-          <Badge
-            variant="outline"
-            className={`text-xs text-white ${
-              property.Is_the_apartment_available === "Available"
-                ? "bg-emerald-600"
-                : "bg-gray-500"
-            }`}
-          >
-            {property.Is_the_apartment_available || "NA"}
-          </Badge>
+          <div>
+            <Link to={`/property/${property.id}`}>
+              <Badge variant={"default"} className="text-xs">
+                View Property Details
+              </Badge>
+            </Link>
+            &nbsp;
+            <Badge
+              variant="outline"
+              className={`text-xs text-white ${
+                property.Is_the_apartment_available === "Available"
+                  ? "bg-emerald-600"
+                  : "bg-gray-500"
+              }`}
+            >
+              {property.Is_the_apartment_available || "NA"}
+            </Badge>
+          </div>
         </div>
 
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
