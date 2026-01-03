@@ -13,6 +13,8 @@ import {
   Phone,
   Building,
   Mail,
+  ArrowUpDown,
+  Car,
 } from "lucide-react";
 import { Layout } from "@/components/layout";
 import { StatsCard } from "@/components/stats-card";
@@ -91,7 +93,12 @@ function TenantListItem({
             <Phone size={12} /> {tenant.Phone_number}
           </p>
           <p className="text-xs flex items-center gap-1 mt-1">
-            <Bed size={12} /> {tenant.Number_of_Rooms}
+            <Bed size={12} /> {tenant.Number_of_Rooms || "NA"}
+            <ArrowUpDown size={12} /> {tenant.Elevator || "NA"}
+            <Car size={12} /> {tenant.Parking || "NA"}
+          </p>
+          <p className="text-xs flex items-center gap-1 mt-1">
+            <MapPin size={12} /> {tenant.In_which_area_are_you_looking || "NA"}
           </p>
           <p className="text-xs flex items-center gap-1 mt-1">
             ₪{tenant.Current_budget || "-"}/mo
@@ -182,9 +189,10 @@ function MatchedPropertyCard({
         </div>
 
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <Mail size={12} /> {property.Email || "Unknown Area"}
           <MapPin size={12} />{" "}
-          {property.Area_registered_in_Arnona || "Unknown Area"}
+          {property.Area_registered_in_Arnona || "NA"}
+          <MapPin size={12} /> {property.In_which_area_is_the_property || "NA"}
+          <Mail size={12} /> {property.Email || "NA"}
         </div>
 
         <div className="flex justify-between items-center pt-2">
@@ -197,6 +205,12 @@ function MatchedPropertyCard({
             </span>
             <span className="flex items-center gap-1">
               <Building size={12} /> {property.Floor || "-"}
+            </span>
+            <span className="flex items-center gap-1">
+              <ArrowUpDown size={12} /> {property.Elevator || "-"}
+            </span>
+            <span className="flex items-center gap-1">
+              <Car size={12} /> {property.Parking || "-"}
             </span>
           </span>
         </div>
@@ -359,9 +373,24 @@ export default function TenantDashboard() {
   // Filter properties that match selected tenant
   const matchedProperties = useMemo(() => {
     if (!selectedTenant || !properties) return [];
+    const normalize = (v?: string) => v?.toString().trim().toLowerCase() ?? "";
+    const parseMultiSelect = (value?: string | string[]) => {
+      if (Array.isArray(value)) {
+        return value.map((v) => v.toLowerCase());
+      }
+      return value
+        ? value
+            .split(",")
+            .map((v) => v.trim().toLowerCase())
+            .filter(Boolean)
+        : [];
+    };
 
     const tenantBudgets = parseBudgetLimits(selectedTenant.Current_budget);
     const tenantRooms = parseRoomNumbers(selectedTenant.Number_of_Rooms);
+    const tenantAreas = parseMultiSelect(
+      selectedTenant.In_which_area_are_you_looking
+    );
 
     return properties.filter((p) => {
       const price = Number(p.Asking_price);
@@ -369,18 +398,56 @@ export default function TenantDashboard() {
 
       if (isNaN(price) || isNaN(rooms)) return false;
 
+      const propertyArea = normalize(p.In_which_area_is_the_property);
+
       const isAvailabilityMatch =
         filters.availability === "all" ||
         p.Is_the_apartment_available === filters.availability;
 
+      const BUDGET_TOLERANCE = 500;
+
+      // ✅ Budget ±500 match
       const isPriceMatch =
         tenantBudgets.length === 0 ||
-        tenantBudgets.some((b) => price >= filters.minRent && price <= b);
+        tenantBudgets.some(
+          (budget) =>
+            budget >= price - BUDGET_TOLERANCE &&
+            budget <= price + BUDGET_TOLERANCE
+        );
 
       const isRoomMatch =
         tenantRooms.length === 0 || tenantRooms.some((r) => rooms >= r);
 
-      return isAvailabilityMatch && isPriceMatch && isRoomMatch;
+      // ✅ Area MANDATORY (tenant contains property area)
+      const isAreaMatch = propertyArea && tenantAreas.includes(propertyArea);
+
+      // ✅ Elevator MANDATORY
+      const isElevatorMatch = selectedTenant.Elevator === p.Elevator;
+
+      // ✅ Parking OPTIONAL
+      const isParkingMatch = selectedTenant.Parking === p.Parking;
+
+       // ✅ Matched criteria array
+      const matchedCriteria: string[] = [];
+      if (isPriceMatch) matchedCriteria.push("Within Budget");
+      if (isRoomMatch) matchedCriteria.push("Rooms Match");
+      if (isAreaMatch) matchedCriteria.push("Area Match");
+      if (isElevatorMatch) matchedCriteria.push("Elevator Match");
+      if (isParkingMatch) matchedCriteria.push("Parking Match");
+
+      // ✅ Calculate match percentage
+      const matchPercentage = Math.round((matchedCriteria.length / 5) * 100);
+
+
+      return (
+        isAvailabilityMatch &&
+        isPriceMatch &&
+        isRoomMatch &&
+        matchPercentage > 65 &&
+        isAreaMatch &&
+        isElevatorMatch
+        // isParkingMatch &&
+      );
     });
   }, [selectedTenant, properties, filters]);
 

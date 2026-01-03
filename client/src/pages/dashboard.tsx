@@ -13,6 +13,8 @@ import {
   Phone,
   Building,
   Mail,
+  Car,
+  ArrowUpDown
 } from "lucide-react";
 import { Layout } from "@/components/layout";
 import { StatsCard } from "@/components/stats-card";
@@ -98,9 +100,10 @@ function PropertyListItem({
         </div>
 
         <div className="flex items-center gap-1 text-xs text-muted-foreground">
-          <Mail size={12} /> {property.Email || "Unknown Area"}
           <MapPin size={12} />{" "}
-          {property.Area_registered_in_Arnona || "Unknown Area"}
+          {property.Area_registered_in_Arnona || "NA"}
+          <MapPin size={12} /> {property.In_which_area_is_the_property || "NA"}
+          <Mail size={12} /> {property.Email || "NA"}
         </div>
 
         <div className="flex justify-between items-center pt-2">
@@ -113,6 +116,12 @@ function PropertyListItem({
             </span>
             <span className="flex items-center gap-1">
               <Building size={12} /> {property.Floor || "-"}
+            </span>
+            <span className="flex items-center gap-1">
+              <ArrowUpDown size={12} /> {property.Elevator || "-"}
+            </span>
+            <span className="flex items-center gap-1">
+              <Car size={12} /> {property.Parking || "-"}
             </span>
           </span>
         </div>
@@ -159,6 +168,7 @@ function MatchedTenantCard({
   // const message = templateMessage
   //   ? `${templateMessage}\n\nView Property details:\n${window.location.origin}/property/${selectedProperty.id}\n\nRegards,\nProperty Team`
   //   : "";
+
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(fullMessageForShare);
@@ -211,6 +221,15 @@ function MatchedTenantCard({
           </Badge>
           <Badge variant="secondary" className="text-xs">
             {tenant.Number_of_Rooms}
+          </Badge>
+          <Badge variant="secondary" className="text-xs">
+            {tenant.In_which_area_are_you_looking}
+          </Badge>
+          <Badge variant="secondary" className="text-xs">
+            {tenant.Elevator}
+          </Badge>
+          <Badge variant="secondary" className="text-xs">
+            {tenant.Parking}
           </Badge>
         </div>
 
@@ -379,47 +398,106 @@ export default function Dashboard() {
   };
 
   const matches = useMemo(() => {
-    if (!selectedProperty || !tenants) return [];
+  if (!selectedProperty || !tenants) return [];
 
-    const propertyPrice = Number(selectedProperty.Asking_price);
-    const propertyRooms = Number(selectedProperty.How_many_rooms);
+  const propertyPrice = Number(selectedProperty.Asking_price);
+  const propertyRooms = Number(selectedProperty.How_many_rooms);
 
-    if (isNaN(propertyPrice) || isNaN(propertyRooms)) return [];
+  if (isNaN(propertyPrice) || isNaN(propertyRooms)) return [];
 
-    return tenants
-      .filter((tenant) => {
-        if (
-          filters.tenantStatus !== "all" &&
-          tenant.Status !== filters.tenantStatus // 🔴 change if needed
-        ) {
-          return false;
-        }
-        return true;
-      })
-      .map((tenant) => {
-        const budgets = parseBudgetLimits(tenant.Current_budget);
-        const tenantRooms = parseRoomNumbers(tenant.Number_of_Rooms);
+  const propertyArea = selectedProperty.In_which_area_is_the_property
+    ?.toString()
+    .trim()
+    .toLowerCase();
 
-        const isBudgetMatch = budgets.some((budget) => budget >= propertyPrice);
-        const isRoomsMatch = tenantRooms.some((r) => r === propertyRooms);
+  const parseMultiSelect = (value?: string) =>
+  value
+    ? value
+        .split(",")
+        .map((v) => v.trim().toLowerCase())
+        .filter(Boolean)
+    : [];
 
-        const matchedCriteria: string[] = [];
-        if (isBudgetMatch) matchedCriteria.push("Within Budget");
-        if (isRoomsMatch) matchedCriteria.push("Rooms Match");
 
-        const isMatch = isBudgetMatch && isRoomsMatch;
+  return tenants
+    .filter((tenant) => {
+      if (
+        filters.tenantStatus !== "all" &&
+        tenant.Status !== filters.tenantStatus
+      ) {
+        return false;
+      }
+      return true;
+    })
+    .map((tenant) => {
+      const budgets = parseBudgetLimits(tenant.Current_budget);
+      const tenantRooms = parseRoomNumbers(tenant.Number_of_Rooms);
+      const tenantAreas = Array.isArray(tenant.In_which_area_are_you_looking)
+  ? tenant.In_which_area_are_you_looking.map((v: string) =>
+      v.toLowerCase()
+    )
+  : parseMultiSelect(tenant.In_which_area_are_you_looking);
 
-        return {
-          tenant,
-          isMatch,
-          matchPercentage: matchedCriteria.length
-            ? Math.round((matchedCriteria.length / 2) * 100)
-            : 0,
-          matchedCriteria,
-        };
-      })
-      .filter((m) => m.isMatch);
-  }, [selectedProperty, tenants, filters.tenantStatus]);
+
+      const BUDGET_TOLERANCE = 500;
+
+      // ✅ Budget ±500
+      const isBudgetMatch = budgets.some(
+        (budget) =>
+          budget >= propertyPrice - BUDGET_TOLERANCE &&
+          budget <= propertyPrice + BUDGET_TOLERANCE
+      );
+
+      // ✅ Rooms exact
+      const isRoomsMatch = tenantRooms.some(
+        (r) => r === propertyRooms
+      );
+
+      // ✅ Area mandatory (tenant contains property area)
+      const isAreaMatch =
+        !!propertyArea && tenantAreas.includes(propertyArea);
+
+      // ✅ Elevator mandatory
+      const isElevatorMatch =
+        tenant.Elevator === selectedProperty.Elevator;
+
+      // ✅ Parking optional
+      const isParkingMatch =
+        tenant.Parking === selectedProperty.Parking;
+
+      const matchedCriteria: string[] = [];
+      if (isBudgetMatch) matchedCriteria.push("Within Budget");
+      if (isRoomsMatch) matchedCriteria.push("Rooms Match");
+      if (isAreaMatch) matchedCriteria.push("Area Match");
+      if (isElevatorMatch) matchedCriteria.push("Elevator Match");
+      if (isParkingMatch) matchedCriteria.push("Parking Match");
+
+      // ✅ Percentage-based match
+      const matchPercentage = Math.round(
+        (matchedCriteria.length / 5) * 100
+      );
+
+      // 🔴 Mandatory rules
+      const isMatch =
+        isBudgetMatch &&
+        isRoomsMatch &&
+        isAreaMatch &&
+        isElevatorMatch &&
+        matchPercentage > 65
+        // isParkingMatch &&
+
+      return {
+        tenant,
+        isMatch,
+        matchPercentage: matchedCriteria.length
+          ? Math.round((matchedCriteria.length / 5) * 100)
+          : 0,
+        matchedCriteria,
+      };
+    })
+    .filter((m) => m.isMatch);
+}, [selectedProperty, tenants, filters.tenantStatus]);
+
 
   if (pError || tError)
     return (
@@ -531,9 +609,8 @@ export default function Dashboard() {
                 className="w-full border p-2 rounded"
               >
                 <option value="all">הכל</option>
-                <option value="כן">כן</option>
-                <option value="לא">לא</option>
-                <option value="חצי קומה">חצי קומה</option>
+                <option value="כן">כֵּן</option>
+                <option value="לֹא">לא</option>
               </select>
             </div>
 

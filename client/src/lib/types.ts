@@ -34,12 +34,12 @@ export interface Property {
   How_many_rooms?: number;
 
   Air_directions?: string;
-  Elevator?: boolean;
-  Parking?: boolean;
+  Elevator?: string;
+  Parking?: string;
   Can_I_get_a_parking_permit?: boolean;
   Public_car_park_is_the_closest?: boolean;
 
-  Is_there_a_balcony?: boolean;
+  Is_there_a_balcony?: string;
   Balcony_type?: string;
   Balcony_size?: string;
 
@@ -49,6 +49,7 @@ export interface Property {
   Air_conditioning?: boolean;
   Accessibility_to_properties?: string;
 
+  In_which_area_is_the_property?: string; // Available / Rented
   Is_the_apartment_available?: string; // Available / Rented
   Entry_date?: string;
   Gas_connection?: boolean;
@@ -111,6 +112,8 @@ export interface Tenant {
 
   Agent_Name?: string;
   Created?: string;
+  Elevator?: string;
+  Parking?: string;
 
   [key: string]: any;
 }
@@ -143,7 +146,7 @@ export interface PropertyFilters {
   maxRent: number;
   bedrooms: number;
   elevator: "כן" | "לא" | "חצי קומה" | null;
-  parking: "פרטי" | "אין" | "משותף" | "עוקב" | "2 חניות" | null;
+  parking: "פרטית" | "אין" | "משותפת" | "עוקב" | "2 חניות" | null;
   balcony: "כן" | "לא" | null;
   availability: string;
 }

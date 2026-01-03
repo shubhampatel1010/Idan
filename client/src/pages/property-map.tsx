@@ -27,11 +27,11 @@ export function PropertyMap({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <MapPin className="h-5 w-5" />
-            Location
+            מִקוּם
           </CardTitle>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground">
-          Map location is not available for this property.
+          מיקום מפה אינו זמין עבור נכס זה.
         </CardContent>
       </Card>
     );
@@ -44,7 +44,7 @@ export function PropertyMap({
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <MapPin className="h-5 w-5" />
-          Property Location
+          מיקום הנכס
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-2">

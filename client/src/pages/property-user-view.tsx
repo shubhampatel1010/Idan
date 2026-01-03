@@ -73,12 +73,6 @@ export default function PropertyUserView() {
   if (propertyLoading) return <LoadingSpinner />;
   if (!property) return <ErrorState message="Property not found." />;
 
-  const images = property.Property_Image
-    ? [property.Property_Image?.[0]?.url ?? ""]
-    : [
-        "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=1200&auto=format&fit=crop&q=80",
-      ];
-
   const formatValue = (value: any) => {
     if (value === null || value === undefined) return "-";
     if (typeof value === "boolean") return value ? "Yes" : "No";
@@ -94,6 +88,65 @@ export default function PropertyUserView() {
       day: "numeric",
     });
   };
+  interface CarouselProps {
+    images: string[];
+  }
+
+  function Carousel({ images }: CarouselProps) {
+    const [current, setCurrent] = useState(0);
+
+    const prevSlide = () => {
+      setCurrent((prev) => (prev === 0 ? images.length - 1 : prev - 1));
+    };
+
+    const nextSlide = () => {
+      setCurrent((prev) => (prev === images.length - 1 ? 0 : prev + 1));
+    };
+
+    if (!images || images.length === 0) return null;
+
+    return (
+      <div className="relative w-full">
+        {/* Slides */}
+        <div className="relative w-full h-[500px] md:h-[600px] lg:h-[700px] overflow-hidden rounded">
+          {images.map((img, index) => (
+            <div
+              key={index}
+              className={`absolute inset-0 transition-transform duration-500 ${
+                index === current
+                  ? "translate-x-0 z-10"
+                  : "translate-x-full z-0"
+              }`}
+            >
+              <img
+                src={img}
+                alt={`Slide ${index + 1}`}
+                className="w-full h-full object-cover"
+              />
+            </div>
+          ))}
+
+          {/* Controls inside slide container */}
+          {images.length > 1 && (
+            <>
+              <button
+                className="absolute top-1/2 left-2 -translate-y-1/2 bg-black/50 text-white p-3 rounded-full hover:bg-black/70 z-20"
+                onClick={prevSlide}
+              >
+                &#10094;
+              </button>
+              <button
+                className="absolute top-1/2 right-2 -translate-y-1/2 bg-black/50 text-white p-3 rounded-full hover:bg-black/70 z-20"
+                onClick={nextSlide}
+              >
+                &#10095;
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background mt-10">
@@ -121,41 +174,13 @@ export default function PropertyUserView() {
 
             {/* Images */}
             <Card className="overflow-hidden">
-              <div className="relative aspect-video bg-muted">
-                <img
-                  src={images[currentImageIndex]}
-                  alt={`Property Image ${currentImageIndex + 1}`}
-                  className="object-cover w-full h-full"
-                />
-                {images.length > 1 && (
-                  <>
-                    <Button
-                      variant="secondary"
-                      size="icon"
-                      className="absolute left-4 top-1/2 -translate-y-1/2"
-                      onClick={() =>
-                        setCurrentImageIndex((prev) =>
-                          prev === 0 ? images.length - 1 : prev - 1
-                        )
-                      }
-                    >
-                      &lt;
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      size="icon"
-                      className="absolute right-4 top-1/2 -translate-y-1/2"
-                      onClick={() =>
-                        setCurrentImageIndex((prev) =>
-                          prev === images.length - 1 ? 0 : prev + 1
-                        )
-                      }
-                    >
-                      &gt;
-                    </Button>
-                  </>
-                )}
-              </div>
+              <Carousel
+                images={
+                  property.Property_Image?.map((img) => img.url) || [
+                    "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=1200&auto=format&fit=crop&q=80",
+                  ]
+                }
+              />
             </Card>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -164,12 +189,12 @@ export default function PropertyUserView() {
                 {/* General Info */}
                 <Card>
                   <CardHeader>
-                    <CardTitle>General Info</CardTitle>
+                    <CardTitle>מידע כללי</CardTitle>
                   </CardHeader>
                   <CardContent className="grid grid-cols-2 gap-4">
                     <div>
                       <span className="text-sm text-muted-foreground">
-                        Submission ID
+                        מזהה הגשה
                       </span>
                       <p className="font-medium">
                         {formatValue(property.Submission_ID)}
@@ -177,7 +202,7 @@ export default function PropertyUserView() {
                     </div>
                     <div>
                       <span className="text-sm text-muted-foreground">
-                        Meeting Date
+                        תאריך פגישה
                       </span>
                       <p className="font-medium">
                         {formatDate(property.Meeting_Date)}
@@ -185,7 +210,7 @@ export default function PropertyUserView() {
                     </div>
                     <div>
                       <span className="text-sm text-muted-foreground">
-                        Agent
+                        סוֹכֵן
                       </span>
                       <p className="font-medium">
                         {formatValue(property.Agent)}
@@ -193,7 +218,7 @@ export default function PropertyUserView() {
                     </div>
                     <div>
                       <span className="text-sm text-muted-foreground">
-                        Meeting Location
+                        מיקום מפגש
                       </span>
                       <p className="font-medium">
                         {formatValue(property.Meeting_Location)}
@@ -203,14 +228,14 @@ export default function PropertyUserView() {
                 </Card>
 
                 {/* Owner & Contact */}
-                <Card>
+                {/* <Card>
                   <CardHeader>
-                    <CardTitle>Owner & Contact</CardTitle>
+                    <CardTitle>בעלים ויצירת קשר</CardTitle>
                   </CardHeader>
                   <CardContent className="grid grid-cols-2 gap-4">
                     <div>
                       <span className="text-sm text-muted-foreground">
-                        Owner Name
+                        שם הבעלים
                       </span>
                       <p className="font-medium">
                         {formatValue(property.Property_owner_name)}
@@ -218,7 +243,7 @@ export default function PropertyUserView() {
                     </div>
                     <div>
                       <span className="text-sm text-muted-foreground">
-                        Phone
+                        טֵלֵפוֹן
                       </span>
                       <p className="font-medium">
                         {formatValue(property.Phone_Number)}
@@ -226,7 +251,7 @@ export default function PropertyUserView() {
                     </div>
                     <div>
                       <span className="text-sm text-muted-foreground">
-                        Email
+                        אֶלֶקטרוֹנִי
                       </span>
                       <p className="font-medium">
                         {formatValue(property.Email)}
@@ -234,24 +259,24 @@ export default function PropertyUserView() {
                     </div>
                     <div>
                       <span className="text-sm text-muted-foreground">
-                        Who Are You Dealing With
+                        עם מי יש לך עסק
                       </span>
                       <p className="font-medium">
                         {formatValue(property.Who_are_you_dealing_with)}
                       </p>
                     </div>
                   </CardContent>
-                </Card>
+                </Card> */}
 
                 {/* Property Specs */}
                 <Card>
                   <CardHeader>
-                    <CardTitle>Property Specs</CardTitle>
+                    <CardTitle>מפרט נכס</CardTitle>
                   </CardHeader>
                   <CardContent className="grid grid-cols-2 gap-4">
                     <div>
                       <span className="text-sm text-muted-foreground">
-                        Address
+                        כְּתוֹבֶת
                       </span>
                       <p className="font-medium">
                         {formatValue(property.Property_Address)}
@@ -259,7 +284,7 @@ export default function PropertyUserView() {
                     </div>
                     <div>
                       <span className="text-sm text-muted-foreground">
-                        Floor
+                        קוֹמָה
                       </span>
                       <p className="font-medium">
                         {formatValue(property.Floor)}
@@ -267,7 +292,7 @@ export default function PropertyUserView() {
                     </div>
                     <div>
                       <span className="text-sm text-muted-foreground">
-                        Floors in Building
+                        קומות בבניין
                       </span>
                       <p className="font-medium">
                         {formatValue(property.How_many_floors_in_the_building)}
@@ -275,7 +300,7 @@ export default function PropertyUserView() {
                     </div>
                     <div>
                       <span className="text-sm text-muted-foreground">
-                        Apartments in Building
+                        דירות בבניין
                       </span>
                       <p className="font-medium">
                         {formatValue(
@@ -285,7 +310,7 @@ export default function PropertyUserView() {
                     </div>
                     <div>
                       <span className="text-sm text-muted-foreground">
-                        Rooms
+                        חדרים
                       </span>
                       <p className="font-medium">
                         {formatValue(property.How_many_rooms)}
@@ -293,7 +318,7 @@ export default function PropertyUserView() {
                     </div>
                     <div>
                       <span className="text-sm text-muted-foreground">
-                        Actual Area
+                        אזור בפועל
                       </span>
                       <p className="font-medium">
                         {formatValue(property.Actual_area)} m²
@@ -301,7 +326,7 @@ export default function PropertyUserView() {
                     </div>
                     <div>
                       <span className="text-sm text-muted-foreground">
-                        Air Directions
+                        כיווני אוויר
                       </span>
                       <p className="font-medium">
                         {formatValue(property.Air_directions)}
@@ -309,7 +334,7 @@ export default function PropertyUserView() {
                     </div>
                     <div>
                       <span className="text-sm text-muted-foreground">
-                        Elevator
+                        מַעֲלִית
                       </span>
                       <p className="font-medium">
                         {formatValue(property.Elevator)}
@@ -317,24 +342,32 @@ export default function PropertyUserView() {
                     </div>
                     <div>
                       <span className="text-sm text-muted-foreground">
-                        Parking
+                        חֲנָיָה
                       </span>
                       <p className="font-medium">
                         {formatValue(property.Parking)}
                       </p>
                     </div>
+                    {/* <div>
+                      <span className="text-sm text-muted-foreground">
+                        באיזה_אזור_הוא_הנכס
+                      </span>
+                      <p className="font-medium">
+                        {formatValue(property.In_which_area_is_the_property)}
+                      </p>
+                    </div> */}
                   </CardContent>
                 </Card>
 
                 {/* Balcony & Storage */}
                 <Card>
                   <CardHeader>
-                    <CardTitle>Balcony & Storage</CardTitle>
+                    <CardTitle>מרפסת ומחסן</CardTitle>
                   </CardHeader>
                   <CardContent className="grid grid-cols-2 gap-4">
                     <div>
                       <span className="text-sm text-muted-foreground">
-                        Balcony
+                        מִרפֶּסֶת
                       </span>
                       <p className="font-medium">
                         {formatValue(property.Is_there_a_balcony)}
@@ -342,7 +375,7 @@ export default function PropertyUserView() {
                     </div>
                     <div>
                       <span className="text-sm text-muted-foreground">
-                        Balcony Type
+                        סוג מרפסת
                       </span>
                       <p className="font-medium">
                         {formatValue(property.Balcony_type)}
@@ -350,7 +383,7 @@ export default function PropertyUserView() {
                     </div>
                     <div>
                       <span className="text-sm text-muted-foreground">
-                        Balcony Size
+                        גודל מרפסת
                       </span>
                       <p className="font-medium">
                         {formatValue(property.Balcony_size)}
@@ -358,7 +391,7 @@ export default function PropertyUserView() {
                     </div>
                     <div>
                       <span className="text-sm text-muted-foreground">
-                        Storage
+                        אִחסוּן
                       </span>
                       <p className="font-medium">
                         {formatValue(property.Storage)}
@@ -366,7 +399,7 @@ export default function PropertyUserView() {
                     </div>
                     <div>
                       <span className="text-sm text-muted-foreground">
-                        Furniture
+                        רְהִיטִים
                       </span>
                       <p className="font-medium">
                         {formatValue(property.Furniture)}
@@ -374,7 +407,7 @@ export default function PropertyUserView() {
                     </div>
                     <div>
                       <span className="text-sm text-muted-foreground">
-                        Air Conditioning
+                        מיזוג אוויר
                       </span>
                       <p className="font-medium">
                         {formatValue(property.Air_conditioning)}
@@ -386,12 +419,12 @@ export default function PropertyUserView() {
                 {/* Availability & Status */}
                 <Card>
                   <CardHeader>
-                    <CardTitle>Availability & Status</CardTitle>
+                    <CardTitle>זמינות ומצב</CardTitle>
                   </CardHeader>
                   <CardContent className="grid grid-cols-2 gap-4">
                     <div>
                       <span className="text-sm text-muted-foreground">
-                        Available
+                        זָמִין
                       </span>
                       <p className="font-medium">
                         {formatValue(property.Is_the_apartment_available)}
@@ -399,7 +432,7 @@ export default function PropertyUserView() {
                     </div>
                     <div>
                       <span className="text-sm text-muted-foreground">
-                        Entry Date
+                        תאריך כניסה
                       </span>
                       <p className="font-medium">
                         {formatDate(property.Entry_date)}
@@ -407,7 +440,7 @@ export default function PropertyUserView() {
                     </div>
                     <div>
                       <span className="text-sm text-muted-foreground">
-                        Gas Connection
+                        חיבור גז
                       </span>
                       <p className="font-medium">
                         {formatValue(property.Gas_connection)}
@@ -415,7 +448,7 @@ export default function PropertyUserView() {
                     </div>
                     <div>
                       <span className="text-sm text-muted-foreground">
-                        Quiet Street
+                        רחוב שקט
                       </span>
                       <p className="font-medium">
                         {formatValue(property.Quiet_street)}
@@ -423,7 +456,7 @@ export default function PropertyUserView() {
                     </div>
                     <div>
                       <span className="text-sm text-muted-foreground">
-                        TAMA Attached
+                        תמ"א מצורפת
                       </span>
                       <p className="font-medium">
                         {formatValue(property.Is_TAMA_attached)}
@@ -431,7 +464,7 @@ export default function PropertyUserView() {
                     </div>
                     <div>
                       <span className="text-sm text-muted-foreground">
-                        TAMA in Process
+                        תמ"א בתהליך
                       </span>
                       <p className="font-medium">
                         {formatValue(
@@ -441,7 +474,7 @@ export default function PropertyUserView() {
                     </div>
                     <div>
                       <span className="text-sm text-muted-foreground">
-                        Expected TAMA Date
+                        תאריך TAMA צפוי
                       </span>
                       <p className="font-medium">
                         {formatDate(property.When_is_the_TAMA_expected)}
@@ -453,12 +486,12 @@ export default function PropertyUserView() {
                 {/* Financial & Contract */}
                 <Card>
                   <CardHeader>
-                    <CardTitle>Financial & Contract</CardTitle>
+                    <CardTitle>פיננסי וחוזה</CardTitle>
                   </CardHeader>
                   <CardContent className="grid grid-cols-2 gap-4">
                     <div>
                       <span className="text-sm text-muted-foreground">
-                        Last Rental Price
+                        מחיר השכירות אחרון
                       </span>
                       <p className="font-medium">
                         {formatValue(property.Last_rental_price)}
@@ -466,7 +499,7 @@ export default function PropertyUserView() {
                     </div>
                     <div>
                       <span className="text-sm text-muted-foreground">
-                        Committee
+                        וַעֲדָה
                       </span>
                       <p className="font-medium">
                         {formatValue(property.Committee_of_the_House)}
@@ -474,7 +507,7 @@ export default function PropertyUserView() {
                     </div>
                     <div>
                       <span className="text-sm text-muted-foreground">
-                        Bi-monthly Taxes
+                        מיסים דו-חודשיים
                       </span>
                       <p className="font-medium">
                         {formatValue(property.Bi_monthly_municipal_taxes)}
@@ -482,7 +515,7 @@ export default function PropertyUserView() {
                     </div>
                     <div>
                       <span className="text-sm text-muted-foreground">
-                        Payment Term
+                        תקופת תשלום
                       </span>
                       <p className="font-medium">
                         {formatValue(property.Payment_term)}
@@ -490,7 +523,7 @@ export default function PropertyUserView() {
                     </div>
                     <div>
                       <span className="text-sm text-muted-foreground">
-                        Bank Guarantee
+                        ערבות בנקאית
                       </span>
                       <p className="font-medium">
                         {formatValue(property.A_bank_guarantee)}
@@ -498,7 +531,7 @@ export default function PropertyUserView() {
                     </div>
                     <div>
                       <span className="text-sm text-muted-foreground">
-                        Security Note
+                        הערת אבטחה
                       </span>
                       <p className="font-medium">
                         {formatValue(property.A_security_note_for_the_sum)}
@@ -506,7 +539,7 @@ export default function PropertyUserView() {
                     </div>
                     <div>
                       <span className="text-sm text-muted-foreground">
-                        Guarantors
+                        ערבים
                       </span>
                       <p className="font-medium">
                         {formatValue(property.Guarantors_to_the_contract)}
@@ -514,7 +547,7 @@ export default function PropertyUserView() {
                     </div>
                     <div>
                       <span className="text-sm text-muted-foreground">
-                        Contract Term
+                        תקופת החוזה
                       </span>
                       <p className="font-medium">
                         {formatValue(property.Contract_term)}
@@ -526,12 +559,12 @@ export default function PropertyUserView() {
                 {/* Comments & Price */}
                 <Card>
                   <CardHeader>
-                    <CardTitle>Comments & Price</CardTitle>
+                    <CardTitle>הערות ומחיר</CardTitle>
                   </CardHeader>
                   <CardContent className="grid grid-cols-2 gap-4">
                     <div>
                       <span className="text-sm text-muted-foreground">
-                        Owner Considering Selling
+                        בעלים שוקל למכור
                       </span>
                       <p className="font-medium">
                         {formatValue(
@@ -541,7 +574,7 @@ export default function PropertyUserView() {
                     </div>
                     <div>
                       <span className="text-sm text-muted-foreground">
-                        Defects & Repairs
+                        ליקויים ותיקונים
                       </span>
                       <p className="font-medium">
                         {formatValue(
@@ -551,7 +584,7 @@ export default function PropertyUserView() {
                     </div>
                     <div>
                       <span className="text-sm text-muted-foreground">
-                        General Comments
+                        הערות כלליות
                       </span>
                       <p className="font-medium">
                         {formatValue(property.General_comments)}
@@ -559,7 +592,7 @@ export default function PropertyUserView() {
                     </div>
                     <div>
                       <span className="text-sm text-muted-foreground">
-                        Recommended Price
+                        מחיר מומלץ
                       </span>
                       <p className="font-medium">
                         {formatValue(property.Recommended_price)}
@@ -567,7 +600,7 @@ export default function PropertyUserView() {
                     </div>
                     <div>
                       <span className="text-sm text-muted-foreground">
-                        Asking Price
+                        מחיר מבוקש
                       </span>
                       <p className="font-medium">
                         {formatValue(property.Asking_price)}
@@ -581,28 +614,28 @@ export default function PropertyUserView() {
               <div className="space-y-6">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Key Features</CardTitle>
+                    <CardTitle>תכונות מפתח</CardTitle>
                   </CardHeader>
 
                   <CardContent className="grid grid-cols-1 gap-3">
                     <div className="grid grid-cols-[24px_1fr] items-center gap-3">
                       <Sofa className="h-5 w-5 text-muted-foreground" />
                       <span>
-                        <b>Furnished</b>: {formatValue(property.Furniture)}
+                        <b>מְרוּהָט</b>: {formatValue(property.Furniture)}
                       </span>
                     </div>
 
                     <div className="grid grid-cols-[24px_1fr] items-center gap-3">
                       <Car className="h-5 w-5 text-muted-foreground" />
                       <span>
-                        <b>Parking</b>: {formatValue(property.Parking)}
+                        <b>חֲנָיָה</b>: {formatValue(property.Parking)}
                       </span>
                     </div>
 
                     <div className="grid grid-cols-[24px_1fr] items-center gap-3">
                       <Wind className="h-5 w-5 text-muted-foreground" />
                       <span>
-                        <b>Air Conditioning</b>:{" "}
+                        <b>מיזוג אוויר</b>:{" "}
                         {formatValue(property.Air_conditioning)}
                       </span>
                     </div>
@@ -610,7 +643,7 @@ export default function PropertyUserView() {
                     <div className="grid grid-cols-[24px_1fr] items-center gap-3">
                       <Layers className="h-5 w-5 text-muted-foreground" />
                       <span>
-                        <b>Balcony</b>:{" "}
+                        <b>מִרפֶּסֶת</b>:{" "}
                         {formatValue(property.Is_there_a_balcony)}
                       </span>
                     </div>
@@ -618,7 +651,7 @@ export default function PropertyUserView() {
                     <div className="grid grid-cols-[24px_1fr] items-center gap-3">
                       <Building className="h-5 w-5 text-muted-foreground" />
                       <span>
-                        <b>Elevator</b>: {formatValue(property.Elevator)}
+                        <b>מַעֲלִית</b>: {formatValue(property.Elevator)}
                       </span>
                     </div>
                   </CardContent>
@@ -637,17 +670,15 @@ export default function PropertyUserView() {
             {property && (
               <Card className="mt-6">
                 <CardHeader>
-                  <CardTitle>Similar Properties</CardTitle>
+                  <CardTitle>מאפיינים דומים</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {similarLoading && <LoadingSpinner />}
                   {similarError && (
-                    <p className="text-red-500">
-                      Failed to load similar properties.
-                    </p>
+                    <p className="text-red-500">טעינת מאפיינים דומים נכשלה.</p>
                   )}
                   {!similarLoading && similarProperties?.length === 0 && (
-                    <p>No similar properties found.</p>
+                    <p>לא נמצאו נכסים דומים.</p>
                   )}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {similarProperties?.map((p) => (
@@ -670,8 +701,8 @@ export default function PropertyUserView() {
                             <MapPin className="inline mr-1" />{" "}
                             {p.Property_Address}
                           </p>
-                          <p>Rooms: {p.How_many_rooms || "-"}</p>
-                          <p>Price: {p.Asking_price || "-"}</p>
+                          <p>חדרים: {p.How_many_rooms || "-"}</p>
+                          <p>מְחִיר: {p.Asking_price || "-"}</p>
                           <Link to={`/property-view/${p.id}`}>
                             <Button size="sm" className="mt-2 w-full">
                               View
