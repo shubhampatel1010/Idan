@@ -73,6 +73,8 @@ export default function TenantEdit() {
     How_many_apartments_have_you_seen: "",
     Do_you_want_us_to_talk_on_the_phone: "",
     Requirement_decription: "",
+    Elevator: "", // 🔹 new
+    Parking: "",  // 🔹 new
   });
 
   /* ---------------- FETCH TENANT ---------------- */
@@ -129,6 +131,9 @@ export default function TenantEdit() {
         Do_you_want_us_to_talk_on_the_phone:
           data.Do_you_want_us_to_talk_on_the_phone || "",
         Requirement_decription: data.Requirement_decription || "",
+
+        Elevator:data.Elevator || "",
+        Parking:data.Parking || ""
       });
     }
   }, [data]);
@@ -376,6 +381,41 @@ export default function TenantEdit() {
                 </label>
               ))}
             </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">
+              Elevator?
+            </label>
+            <select
+              name="When_is_the_entry_date_set"
+              value={form.Elevator}
+              onChange={handleChange}
+              className="w-full border p-2 rounded"
+            >
+              <option value="">Select</option>
+              <option value="כֵּן">כֵּן</option>
+              <option value="לֹא">לֹא</option>
+          
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">
+              Parking?
+            </label>
+            <select
+              name="When_is_the_entry_date_set"
+              value={form.Parking}
+              onChange={handleChange}
+              className="w-full border p-2 rounded"
+            >
+              <option value="">Select</option>
+              <option value="פרטית">פרטית</option>
+              <option value="אין">אין</option>
+              <option value="משותפת">משותפת</option>
+              <option value="עוקבת">עוקבת</option>
+              <option value="2 חניות">2 חניות</option>
+              
+            </select>
           </div>
 
           {/* APARTMENTS SEEN */}

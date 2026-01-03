@@ -166,6 +166,9 @@ export default function TenantList() {
                     <th className="p-3">Phone</th>
                     <th className="p-3">Rooms</th>
                     <th className="p-3">Budget</th>
+                    <th className="p-3">Elevator</th>
+                    <th className="p-3">Parking</th>
+                    <th className="p-3">Area For Looking</th>
                     <th className="p-3">Status</th>
                     <th className="p-3">Edit</th>
                   </tr>
@@ -181,6 +184,9 @@ export default function TenantList() {
                       <td className="p-3">
                         {normalizeToArray(t.Current_budget).join(", ")}
                       </td>
+                      <td className="p-3">{t.Elevator}</td>
+                      <td className="p-3">{t.Parking}</td>
+                      <td className="p-3">{t.In_which_area_are_you_looking}</td>
                       <td className="p-3">
                         <Switch
                           checked={t.Status === "Active"}

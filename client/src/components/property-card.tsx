@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Bed, Bath, Ruler, MapPin, Building } from "lucide-react";
+import { Bed, Bath, Ruler, MapPin, Building, Edit } from "lucide-react";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -15,7 +15,6 @@ interface PropertyCardProps {
 }
 
 export function PropertyCard({ property, compact = false }: PropertyCardProps) {
-
   const imageUrl =
     property.Property_Image?.[0]?.url ||
     "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&auto=format&fit=crop&q=60";
@@ -65,7 +64,11 @@ export function PropertyCard({ property, compact = false }: PropertyCardProps) {
       <Link to={`/property/${property.id}`}>
         <Card className="overflow-hidden hover-elevate cursor-pointer h-full">
           <div className="aspect-video overflow-hidden bg-muted">
-            <img src={imageUrl} alt={propertyName} className="object-cover w-full h-full" />
+            <img
+              src={imageUrl}
+              alt={propertyName}
+              className="object-cover w-full h-full"
+            />
           </div>
           <CardContent className="p-3">
             <h4 className="font-medium text-sm truncate">{propertyName}</h4>
@@ -87,13 +90,17 @@ export function PropertyCard({ property, compact = false }: PropertyCardProps) {
   return (
     <Card className="overflow-hidden h-full flex flex-col">
       <div className="aspect-video overflow-hidden bg-muted">
-        <img src={imageUrl} alt={propertyName} className="object-cover w-full h-full" />
+        <img
+          src={imageUrl}
+          alt={propertyName}
+          className="object-cover w-full h-full"
+        />
       </div>
 
       <CardContent className="p-4 flex-1">
         <div className="flex items-center justify-between mb-1">
           <h3 className="font-semibold text-lg">{propertyName}</h3>
-          <Badge variant={isAvailable ? "default" : "secondary"} >
+          <Badge variant={isAvailable ? "default" : "secondary"}>
             {status}
           </Badge>
         </div>
@@ -105,7 +112,10 @@ export function PropertyCard({ property, compact = false }: PropertyCardProps) {
 
         <div className="text-2xl font-bold text-primary mb-3">
           {formatRent(rent)}
-          <span className="text-sm font-normal text-muted-foreground"> /month</span>
+          <span className="text-sm font-normal text-muted-foreground">
+            {" "}
+            /month
+          </span>
         </div>
 
         <div className="flex items-center gap-4 text-sm text-muted-foreground">
@@ -128,6 +138,14 @@ export function PropertyCard({ property, compact = false }: PropertyCardProps) {
       <CardFooter className="p-4 pt-0 flex flex-col gap-3">
         <Link to={`/property/${property.id}`} className="w-full">
           <Button className="w-full">View</Button>
+        </Link>
+        {/* Edit Button */}
+        <Link
+          to={`/property-edit/${property.id}`}
+          className="flex items-center justify-center w-full border rounded-md p-2 hover:bg-gray-100 transition"
+        >
+          <Edit className="w-4 h-4 mr-2" />
+          <span className="text-sm font-medium">Edit</span>
         </Link>
 
         {/* Availability Toggle */}

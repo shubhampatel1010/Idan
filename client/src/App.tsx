@@ -10,6 +10,7 @@ import Dashboard from "@/pages/dashboard";
 import PropertyList from "@/pages/property-list";
 import TenantList from "@/pages/tenant-list";
 import PropertyView from "@/pages/property-view";
+import PropertyEdit from "@/pages/property-edit";
 import NotFound from "@/pages/not-found";
 import AddProperty from "@/pages/AddProperty";
 import TenantDashboard from "@/pages/dashboardTenant";
@@ -31,6 +32,7 @@ export default function App() {
           <Route path="/properties" element={<PropertyList />} />
           <Route path="/tenants" element={<TenantList />} />
           <Route path="/property/:id" element={<PropertyView />} />
+          <Route path="/property-edit/:id" element={<PropertyEdit />} />
           <Route path="/addproperties" element={<AddProperty />} />
           <Route path="/settings" element={<TemplateEditorPage />} />
           <Route path="/tenants/edit/:id" element={<TenantEdit />} />
