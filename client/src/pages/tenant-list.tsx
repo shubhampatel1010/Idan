@@ -42,6 +42,7 @@ export default function TenantList() {
   const [minBudget, setMinBudget] = useState(0);
   const [maxBudget, setMaxBudget] = useState(50000);
   const [rooms, setRooms] = useState(0);
+  const [nameSearch, setNameSearch] = useState("");
 
   const { data: tenants = [], isLoading } = useQuery<Tenant[]>({
     queryKey: ["tenants"],
@@ -52,6 +53,13 @@ export default function TenantList() {
 
   const filteredTenants = useMemo(() => {
     return tenants.filter((t) => {
+      // ✅ Name search (case-insensitive)
+      if (
+        nameSearch &&
+        !t.Full_name?.toLowerCase().includes(nameSearch.toLowerCase())
+      ) {
+        return false;
+      }
       if (status !== "all" && t.Status !== status) return false;
       const budgets = extractBudgets(t.Current_budget);
       if (budgets.length) {
@@ -66,7 +74,7 @@ export default function TenantList() {
 
       return true;
     });
-  }, [tenants, status, minBudget, maxBudget, rooms]);
+  }, [tenants, status, minBudget, maxBudget, rooms, nameSearch]);
 
   /* ---------------- HANDLE STATUS TOGGLE ---------------- */
 
@@ -84,12 +92,32 @@ export default function TenantList() {
     }
   };
 
+  function formatDate(value?: string) {
+    if (!value) return "-";
+    return new Date(value).toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  }
+
   return (
     <Layout>
       <div className="flex flex-col lg:flex-row gap-6">
         {/* FILTER SIDEBAR */}
         <aside className="w-full lg:w-64 bg-white p-4 rounded shadow space-y-4">
           <h2 className="font-semibold text-lg">Filters</h2>
+          <div>
+            <label className="block text-sm mb-1">Search by Name</label>
+            <input
+              type="text"
+              placeholder="Enter tenant name"
+              value={nameSearch}
+              onChange={(e) => setNameSearch(e.target.value)}
+              className="w-full border p-2 rounded"
+            />
+          </div>
+
           <div>
             <label className="block text-sm mb-1">Status</label>
             <select
@@ -137,6 +165,7 @@ export default function TenantList() {
               setMinBudget(0);
               setMaxBudget(50000);
               setRooms(0);
+              setNameSearch("");
             }}
             className="w-full bg-blue-600 text-white p-2 rounded"
           >
@@ -162,6 +191,7 @@ export default function TenantList() {
               <table className="w-full text-sm">
                 <thead className="bg-gray-100 text-left">
                   <tr>
+                    <th className="p-3">Date</th>
                     <th className="p-3">Name</th>
                     <th className="p-3">Phone</th>
                     <th className="p-3">Rooms</th>
@@ -176,6 +206,8 @@ export default function TenantList() {
                 <tbody>
                   {filteredTenants.map((t) => (
                     <tr key={t.id} className="border-t hover:bg-gray-50">
+                      <td className="p-3">{formatDate(t.Created)}</td>
+
                       <td className="p-3">{t.Full_name}</td>
                       <td className="p-3">{t.Phone_number}</td>
                       <td className="p-3">

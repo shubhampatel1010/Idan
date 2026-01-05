@@ -192,14 +192,14 @@ export default function PropertyUserView() {
                     <CardTitle>מידע כללי</CardTitle>
                   </CardHeader>
                   <CardContent className="grid grid-cols-2 gap-4">
-                    <div>
+                    {/* <div>
                       <span className="text-sm text-muted-foreground">
                         מזהה הגשה
                       </span>
                       <p className="font-medium">
                         {formatValue(property.Submission_ID)}
                       </p>
-                    </div>
+                    </div> */}
                     <div>
                       <span className="text-sm text-muted-foreground">
                         תאריך פגישה
@@ -657,11 +657,11 @@ export default function PropertyUserView() {
                   </CardContent>
                 </Card>
 
-                <PropertyMap
+                {/* <PropertyMap
                   latitude={property.Latitude}
                   longitude={property.Longitude}
                   address={property.Property_Address}
-                />
+                /> */}
               </div>
             </div>
 

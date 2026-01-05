@@ -211,14 +211,14 @@ export default function PropertyView() {
                 <CardTitle>מידע כללי</CardTitle>
               </CardHeader>
               <CardContent className="grid grid-cols-2 gap-4">
-                <div>
+                {/* <div>
                   <span className="text-sm text-muted-foreground">
                     מזהה הגשה
                   </span>
                   <p className="font-medium">
                     {formatValue(property.Submission_ID)}
                   </p>
-                </div>
+                </div> */}
                 <div>
                   <span className="text-sm text-muted-foreground">
                     תאריך פגישה

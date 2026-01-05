@@ -25,6 +25,7 @@ export function PropertyCard({ property, compact = false }: PropertyCardProps) {
   const floor = property.Floor ?? 0;
   const sqm = property.Actual_area ?? 0;
   const address = property.Property_Address || "Unknown location";
+  const In_which_area_is_the_property = property.In_which_area_is_the_property || "NA";
 
   const status = property.Is_the_apartment_available || "NA";
   const isAvailable = status === "Available";
@@ -50,6 +51,16 @@ export function PropertyCard({ property, compact = false }: PropertyCardProps) {
       });
     },
   });
+
+  function formatDate(value?: string) {
+  if (!value) return "-";
+  return new Date(value).toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
 
   const formatRent = (rentAmount: number) => {
     return new Intl.NumberFormat("he-IL", {
@@ -99,7 +110,7 @@ export function PropertyCard({ property, compact = false }: PropertyCardProps) {
 
       <CardContent className="p-4 flex-1">
         <div className="flex items-center justify-between mb-1">
-          <h3 className="font-semibold text-lg">{propertyName}</h3>
+          <h3 className="font-semibold text-lg">{address}</h3>
           <Badge variant={isAvailable ? "default" : "secondary"}>
             {status}
           </Badge>
@@ -107,7 +118,7 @@ export function PropertyCard({ property, compact = false }: PropertyCardProps) {
 
         <div className="flex items-center gap-1 text-muted-foreground text-sm mb-3">
           <MapPin className="h-3.5 w-3.5" />
-          <span>{address}</span>
+          <span>{In_which_area_is_the_property}</span>
         </div>
 
         <div className="text-2xl font-bold text-primary mb-3">
@@ -164,6 +175,9 @@ export function PropertyCard({ property, compact = false }: PropertyCardProps) {
             <span className="text-xs">Available</span>
           </div>
         </div>
+        <p className="text-xs text-muted-foreground">
+          Created: {formatDate(property.Created)}
+        </p>
       </CardFooter>
     </Card>
   );
