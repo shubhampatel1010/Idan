@@ -268,8 +268,8 @@ export default function TenantDashboard() {
       minRent: 0,
       maxRent: 50000,
       bedrooms: 0,
-      availability: "all",
-      Status: "all",
+      availability: "Available",
+      Status: "Active",
     }
   );
 
@@ -605,7 +605,8 @@ export default function TenantDashboard() {
                   minRent: 0,
                   maxRent: 50000,
                   bedrooms: 0,
-                  availability: "all",
+                  availability: "Available",
+                  Status:"Active"
                 })
               }
               className="w-full mt-2"

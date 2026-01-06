@@ -294,7 +294,7 @@ export default function Dashboard() {
     elevator: null,
     parking: null,
     balcony: null,
-    availability: "all",
+    availability: "Available",
     tenantStatus: "all", // 👈 ADD
   });
 
@@ -699,7 +699,8 @@ export default function Dashboard() {
                   elevator: null,
                   parking: null,
                   balcony: null,
-                  availability: "all",
+                  availability: "Available",
+                  tenantStatus: "all",
                 })
               }
               className="w-full mt-2"
