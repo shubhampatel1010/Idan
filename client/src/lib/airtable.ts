@@ -369,4 +369,17 @@ export async function updateTenant(id: string, fields: any) {
   return res.json();
 }
 
+export async function deleteTenant(tenantId: string): Promise<void> {
+  const response = await fetch(`${BASE_URL}/${TenantTable_id}/${tenantId}`, {
+    method: "DELETE",
+    headers,
+  });
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error("Airtable error:", errorText);
+    throw new Error(`Failed to delete tenant: ${response.status}`);
+  }
+}
+
+
 

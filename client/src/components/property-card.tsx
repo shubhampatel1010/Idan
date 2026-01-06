@@ -1,11 +1,11 @@
 import { Link } from "react-router-dom";
-import { Bed, Bath, Ruler, MapPin, Building, Edit } from "lucide-react";
+import { Bed, Bath, Ruler, MapPin, Building, Edit, Trash2 } from "lucide-react";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import type { Property } from "@/lib/types";
-import { updatePropertyAvailability } from "@/lib/airtable";
+import { deleteProperty, updatePropertyAvailability } from "@/lib/airtable";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient, useMutation } from "@tanstack/react-query";
 
@@ -25,7 +25,8 @@ export function PropertyCard({ property, compact = false }: PropertyCardProps) {
   const floor = property.Floor ?? 0;
   const sqm = property.Actual_area ?? 0;
   const address = property.Property_Address || "Unknown location";
-  const In_which_area_is_the_property = property.In_which_area_is_the_property || "NA";
+  const In_which_area_is_the_property =
+    property.In_which_area_is_the_property || "NA";
 
   const status = property.Is_the_apartment_available || "NA";
   const isAvailable = status === "Available";
@@ -53,14 +54,13 @@ export function PropertyCard({ property, compact = false }: PropertyCardProps) {
   });
 
   function formatDate(value?: string) {
-  if (!value) return "-";
-  return new Date(value).toLocaleDateString("en-GB", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
-}
-
+    if (!value) return "-";
+    return new Date(value).toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  }
 
   const formatRent = (rentAmount: number) => {
     return new Intl.NumberFormat("he-IL", {
@@ -69,6 +69,21 @@ export function PropertyCard({ property, compact = false }: PropertyCardProps) {
       maximumFractionDigits: 0,
     }).format(rentAmount);
   };
+
+  const deleteMutation = useMutation({
+    mutationFn: () => deleteProperty(property.id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/properties"] });
+      toast({ title: "Deleted", description: "Property deleted successfully" });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to delete property",
+        variant: "destructive",
+      });
+    },
+  });
 
   if (compact) {
     return (
@@ -150,15 +165,6 @@ export function PropertyCard({ property, compact = false }: PropertyCardProps) {
         <Link to={`/property/${property.id}`} className="w-full">
           <Button className="w-full">View</Button>
         </Link>
-        {/* Edit Button */}
-        <Link
-          to={`/property-edit/${property.id}`}
-          className="flex items-center justify-center w-full border rounded-md p-2 hover:bg-gray-100 transition"
-        >
-          <Edit className="w-4 h-4 mr-2" />
-          <span className="text-sm font-medium">Edit</span>
-        </Link>
-
         {/* Availability Toggle */}
         <div className="flex items-center justify-between w-full border rounded-md p-2">
           <span className="text-sm font-medium">Availability</span>
@@ -175,6 +181,31 @@ export function PropertyCard({ property, compact = false }: PropertyCardProps) {
             <span className="text-xs">Available</span>
           </div>
         </div>
+        {/* Edit + Delete side by side */}
+        <div className="flex gap-2 w-full">
+          <Link
+            to={`/property-edit/${property.id}`}
+            className="flex-1 flex items-center justify-center border rounded-md p-2 hover:bg-gray-100 transition"
+          >
+            <Edit className="w-4 h-4 mr-1" />
+            <span className="text-sm font-medium">Edit</span>
+          </Link>
+
+          <Button
+            variant="destructive"
+            className="flex-1 flex items-center justify-center border rounded-md p-2 hover:bg-red-600 hover:text-white transition"
+            onClick={() => {
+              if (confirm("Are you sure you want to delete this property?")) {
+                deleteMutation.mutate();
+              }
+            }}
+            disabled={deleteMutation.isLoading}
+          >
+            <Trash2 className="w-4 h-4 mr-1" />
+            <span className="text-sm font-medium">Delete</span>
+          </Button>
+        </div>
+
         <p className="text-xs text-muted-foreground">
           Created: {formatDate(property.Created)}
         </p>

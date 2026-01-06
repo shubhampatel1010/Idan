@@ -74,7 +74,7 @@ export default function TenantEdit() {
     Do_you_want_us_to_talk_on_the_phone: "",
     Requirement_decription: "",
     Elevator: "", // 🔹 new
-    Parking: "",  // 🔹 new
+    Parking: "", // 🔹 new
   });
 
   /* ---------------- FETCH TENANT ---------------- */
@@ -132,8 +132,8 @@ export default function TenantEdit() {
           data.Do_you_want_us_to_talk_on_the_phone || "",
         Requirement_decription: data.Requirement_decription || "",
 
-        Elevator:data.Elevator || "",
-        Parking:data.Parking || ""
+        Elevator: data.Elevator || "",
+        Parking: data.Parking || "",
       });
     }
   }, [data]);
@@ -152,6 +152,27 @@ export default function TenantEdit() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // ✅ Validation: require at least one checkbox in multi-selects
+    const multiSelectFields = [
+      { field: "Number_of_Rooms", label: "Number of Rooms" },
+      { field: "Current_budget", label: "Current Budget" },
+      {
+        field: "The_most_important_thing_to_me_in_the_apartment_is",
+        label: "Most Important Things",
+      },
+      {
+        field: "In_which_area_are_you_looking",
+        label: "Area You Are Looking In",
+      },
+    ];
+
+    for (const item of multiSelectFields) {
+      if (!form[item.field] || form[item.field].length === 0) {
+        alert(`Please select at least one option for "${item.label}"`);
+        return; // Stop form submission
+      }
+    }
     setSaving(true);
 
     try {
@@ -189,6 +210,7 @@ export default function TenantEdit() {
               value={form.Full_name}
               onChange={handleChange}
               className="w-full border p-2 rounded"
+              required
             />
           </div>
 
@@ -202,6 +224,7 @@ export default function TenantEdit() {
               value={form.Phone_number}
               onChange={handleChange}
               className="w-full border p-2 rounded"
+              required
             />
           </div>
 
@@ -215,11 +238,10 @@ export default function TenantEdit() {
               value={form.When_is_the_entry_date_set}
               onChange={handleChange}
               className="w-full border p-2 rounded"
+              required
             >
               <option value="">Select</option>
-              <option value="אחרי המועד שכתבתם">אחרי המועד שכתבתם</option>
               <option value="גמיש">גמיש</option>
-              <option value="המועד שכתבתם">המועד שכתבתם</option>
               <option value="מיידי">מיידי</option>
             </select>
           </div>
@@ -264,6 +286,7 @@ export default function TenantEdit() {
               value={form.How_old_will_you_be}
               onChange={handleChange}
               className="w-full border p-2 rounded"
+              required
             >
               <option value="">Select</option>
               <option value="אנחנו זוג">אנחנו זוג</option>
@@ -383,29 +406,26 @@ export default function TenantEdit() {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">
-              Elevator?
-            </label>
+            <label className="block text-sm font-medium mb-1">Elevator?</label>
             <select
-              name="When_is_the_entry_date_set"
+              name="Elevator"
               value={form.Elevator}
               onChange={handleChange}
               className="w-full border p-2 rounded"
+              required
             >
               <option value="">Select</option>
-              <option value="כֵּן">כֵּן</option>
-              <option value="לֹא">לֹא</option>
-          
+              <option value="כן">כן</option>
+              <option value="לא">לא</option>
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">
-              Parking?
-            </label>
+            <label className="block text-sm font-medium mb-1">Parking?</label>
             <select
-              name="When_is_the_entry_date_set"
+              name="Parking"
               value={form.Parking}
               onChange={handleChange}
+              required
               className="w-full border p-2 rounded"
             >
               <option value="">Select</option>
@@ -414,7 +434,6 @@ export default function TenantEdit() {
               <option value="משותפת">משותפת</option>
               <option value="עוקבת">עוקבת</option>
               <option value="2 חניות">2 חניות</option>
-              
             </select>
           </div>
 
@@ -451,7 +470,6 @@ export default function TenantEdit() {
               className="w-full border p-2 rounded"
             >
               <option value="">Select</option>
-              <option value="תלחצו כאן">תלחצו כאן</option>
               <option value="דווקא אחלה שאלון מחכים שתמצאו לנו דירה!">
                 דווקא אחלה שאלון מחכים שתמצאו לנו דירה!
               </option>
