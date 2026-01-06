@@ -112,9 +112,9 @@ export default function Login() {
               <Briefcase className="h-6 w-6 text-primary-foreground" />
             </div>
             <CardTitle className="text-2xl" data-testid="text-login-title">
-              Admin Login
+              Authentica TLV Real Estate Login
             </CardTitle>
-            <CardDescription>For Admin team members</CardDescription>
+            <CardDescription>For Authentica TLV Real Estate team members</CardDescription>
           </CardHeader>
           <CardContent>
             {/* Demo Credentials */}
