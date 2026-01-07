@@ -479,7 +479,8 @@ export default function TenantDashboard() {
     selectedTenant.In_which_area_are_you_looking
   );
 
-  const BUDGET_TOLERANCE = 500;
+  const BUDGET_TOLERANCE_DOWN = 1500; // allowed below tenant budget
+  const BUDGET_TOLERANCE_UP = 500;    // allowed above tenant budget
 
   return properties.filter((p) => {
     const price = Number(p.Asking_price);
@@ -504,9 +505,12 @@ export default function TenantDashboard() {
     if (!isAreaMatch) return false;
 
     /* ---------------- BUDGET (Hard gate – 25%) ---------------- */
-    const isBudgetMatch = tenantBudgets.some(
-      (budget) => price <= budget + BUDGET_TOLERANCE
-    );
+    const isBudgetMatch = tenantBudgets.some((budget) => {
+      const min = budget - BUDGET_TOLERANCE_DOWN;
+      const max = budget + BUDGET_TOLERANCE_UP;
+      return price >= min && price <= max;
+    });
+
 
     if (!isBudgetMatch) return false;
 

@@ -214,6 +214,8 @@ function MatchedTenantCard({
               {c}
             </Badge>
           ))}
+        </div>
+        <div className="flex flex-wrap gap-1">
           <Badge variant="secondary" className="text-xs">
             {tenant.Current_budget}
           </Badge>
@@ -221,16 +223,19 @@ function MatchedTenantCard({
             {tenant.Number_of_Rooms}
           </Badge>
           <Badge variant="secondary" className="text-xs">
-            {tenant.In_which_area_are_you_looking}
-          </Badge>
-          <Badge variant="secondary" className="text-xs">
             {tenant.Elevator}
           </Badge>
           <Badge variant="secondary" className="text-xs">
             {tenant.Parking}
           </Badge>
+          <Badge
+            variant="secondary"
+            className="text-xs break-all max-w-[100%] whitespace-normal"
+          >
+            {tenant.In_which_area_are_you_looking}
+          </Badge>
         </div>
-
+        
         <div className="relative border rounded-md bg-muted/40 p-3 text-xs whitespace-pre-line">
           <div className="absolute top-2 right-2 flex gap-1">
             <Button
@@ -414,7 +419,8 @@ export default function Dashboard() {
             .filter(Boolean)
         : [];
 
-    const BUDGET_TOLERANCE = 500;
+    const BUDGET_TOLERANCE_DOWN = 1500; // allowed below tenant budget
+    const BUDGET_TOLERANCE_UP = 500; // allowed above tenant budget
 
     return tenants
       .filter((tenant) => {
@@ -449,9 +455,12 @@ export default function Dashboard() {
         matchedCriteria.push("Area Match");
 
         /* ---------------- BUDGET (Hard gate) ---------------- */
-        const isBudgetMatch = tenantBudgets.some(
-          (budget) => propertyPrice <= budget + BUDGET_TOLERANCE
-        );
+
+        const isBudgetMatch = tenantBudgets.some((budget) => {
+          const min = budget - BUDGET_TOLERANCE_DOWN;
+          const max = budget + BUDGET_TOLERANCE_UP;
+          return propertyPrice >= min && propertyPrice <= max;
+        });
 
         if (!isBudgetMatch) return null;
 
