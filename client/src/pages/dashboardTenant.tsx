@@ -134,9 +134,11 @@ function MatchedPropertyCard({
   //   ? `${templateMessage}\n\nView Property details:\n${window.location.origin}/property/${property.id}`
   //   : "";
 
-  const messageText = templateMessage
-    ? `${templateMessage}\n\nView Property details:`
-    : "";
+  // const messageText = templateMessage
+  //   ? `${templateMessage}\n\nView Property details:`
+  //   : "";
+  const messageText = `Hello ${tenant.Full_name},\n\n${templateMessage || ""}\n\nView Property details:`;
+
 
   const propertyPath = `/property-view/${property.id}`;
   const propertyUrl = `${window.location.origin}${propertyPath}`;

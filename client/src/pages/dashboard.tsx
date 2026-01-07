@@ -152,9 +152,11 @@ function MatchedTenantCard({
   const [copied, setCopied] = useState(false);
   const navigate = useNavigate(); // 👈 ADD THIS
 
-  const messageText = templateMessage
-    ? `${templateMessage}\n\nView Property details:`
-    : "";
+  // const messageText = templateMessage
+  //   ? `${templateMessage}\n\nView Property details:`
+  //   : "";
+  const messageText = `Hello ${tenant.Full_name},\n\n${templateMessage || ""}\n\nView Property details:`;
+
 
   const propertyPath = `/property-view/${selectedProperty.id}`;
   const propertyUrl = `${window.location.origin}${propertyPath}`;
