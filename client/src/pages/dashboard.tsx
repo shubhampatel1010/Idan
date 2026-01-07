@@ -155,7 +155,7 @@ function MatchedTenantCard({
   // const messageText = templateMessage
   //   ? `${templateMessage}\n\nView Property details:`
   //   : "";
-  const messageText = `Hello ${tenant.Full_name},\n\n${templateMessage || ""}\n\nView Property details:`;
+  const messageText = `שלום ${tenant.Full_name},\n\n${templateMessage || ""}\n\nView Property details:`;
 
 
   const propertyPath = `/property-view/${selectedProperty.id}`;
