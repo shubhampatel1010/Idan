@@ -14,7 +14,7 @@ import {
   Building,
   Mail,
   Car,
-  ArrowUpDown
+  ArrowUpDown,
 } from "lucide-react";
 import { Layout } from "@/components/layout";
 import { StatsCard } from "@/components/stats-card";
@@ -100,8 +100,7 @@ function PropertyListItem({
         </div>
 
         <div className="flex items-center gap-1 text-xs text-muted-foreground">
-          <MapPin size={12} />{" "}
-          {property.Area_registered_in_Arnona || "NA"}
+          <MapPin size={12} /> {property.Area_registered_in_Arnona || "NA"}
           <MapPin size={12} /> {property.In_which_area_is_the_property || "NA"}
           <Mail size={12} /> {property.Email || "NA"}
         </div>
@@ -168,7 +167,6 @@ function MatchedTenantCard({
   // const message = templateMessage
   //   ? `${templateMessage}\n\nView Property details:\n${window.location.origin}/property/${selectedProperty.id}\n\nRegards,\nProperty Team`
   //   : "";
-
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(fullMessageForShare);
@@ -306,7 +304,7 @@ export default function Dashboard() {
     queryKey: ["/api/properties"],
     queryFn: fetchProperties,
     staleTime: 0, // ensures data is considered stale immediately
-  refetchOnWindowFocus: true, // optional: refetch if user switches tab
+    refetchOnWindowFocus: true, // optional: refetch if user switches tab
   });
 
   const {
@@ -317,20 +315,19 @@ export default function Dashboard() {
     queryKey: ["/api/tenants"],
     queryFn: fetchTenants,
     staleTime: 0, // ensures data is considered stale immediately
-  refetchOnWindowFocus: true, // optional: refetch if user switches tab
+    refetchOnWindowFocus: true, // optional: refetch if user switches tab
   });
 
- const {
-  data: templateData,
-  refetch: refetchTemplate,
-  isFetching: isTemplateFetching,
-} = useQuery({
-  queryKey: ["/api/templateMessage"],
-  queryFn: fetchTemplateMessage,
-  staleTime: 0, // ensures data is considered stale immediately
-  refetchOnWindowFocus: true, // optional: refetch if user switches tab
-});
-
+  const {
+    data: templateData,
+    refetch: refetchTemplate,
+    isFetching: isTemplateFetching,
+  } = useQuery({
+    queryKey: ["/api/templateMessage"],
+    queryFn: fetchTemplateMessage,
+    staleTime: 0, // ensures data is considered stale immediately
+    refetchOnWindowFocus: true, // optional: refetch if user switches tab
+  });
 
   const templateMessage = templateData || "";
 
@@ -396,108 +393,211 @@ export default function Dashboard() {
     }
     return [];
   };
-
   const matches = useMemo(() => {
-  if (!selectedProperty || !tenants) return [];
+    if (!selectedProperty || !tenants) return [];
 
-  const propertyPrice = Number(selectedProperty.Asking_price);
-  const propertyRooms = Number(selectedProperty.How_many_rooms);
+    const propertyPrice = Number(selectedProperty.Asking_price);
+    const propertyRooms = Number(selectedProperty.How_many_rooms);
 
-  if (isNaN(propertyPrice) || isNaN(propertyRooms)) return [];
+    if (isNaN(propertyPrice) || isNaN(propertyRooms)) return [];
 
-  const propertyArea = selectedProperty.In_which_area_is_the_property
-    ?.toString()
-    .trim()
-    .toLowerCase();
+    const propertyArea =
+      selectedProperty.In_which_area_is_the_property?.toString()
+        .trim()
+        .toLowerCase();
 
-  const parseMultiSelect = (value?: string) =>
-  value
-    ? value
-        .split(",")
-        .map((v) => v.trim().toLowerCase())
-        .filter(Boolean)
-    : [];
+    const parseMultiSelect = (value?: string) =>
+      value
+        ? value
+            .split(",")
+            .map((v) => v.trim().toLowerCase())
+            .filter(Boolean)
+        : [];
 
+    const BUDGET_TOLERANCE = 500;
 
-  return tenants
-    .filter((tenant) => {
-      if (
-        filters.tenantStatus !== "all" &&
-        tenant.Status !== filters.tenantStatus
-      ) {
-        return false;
-      }
-      return true;
-    })
-    .map((tenant) => {
-      const budgets = parseBudgetLimits(tenant.Current_budget);
-      const tenantRooms = parseRoomNumbers(tenant.Number_of_Rooms);
-      const tenantAreas = Array.isArray(tenant.In_which_area_are_you_looking)
-  ? tenant.In_which_area_are_you_looking.map((v: string) =>
-      v.toLowerCase()
-    )
-  : parseMultiSelect(tenant.In_which_area_are_you_looking);
+    return tenants
+      .filter((tenant) => {
+        if (
+          filters.tenantStatus !== "all" &&
+          tenant.Status !== filters.tenantStatus
+        ) {
+          return false;
+        }
+        return true;
+      })
+      .map((tenant) => {
+        let score = 0;
+        const matchedCriteria: string[] = [];
 
+        const tenantBudgets = parseBudgetLimits(tenant.Current_budget);
+        const tenantRooms = parseRoomNumbers(tenant.Number_of_Rooms);
 
-      const BUDGET_TOLERANCE = 500;
+        const tenantAreas = Array.isArray(tenant.In_which_area_are_you_looking)
+          ? tenant.In_which_area_are_you_looking.map((v: string) =>
+              v.toLowerCase()
+            )
+          : parseMultiSelect(tenant.In_which_area_are_you_looking);
 
-      // ✅ Budget ±500
-      const isBudgetMatch = budgets.some(
-        (budget) =>
-          budget >= propertyPrice - BUDGET_TOLERANCE &&
-          budget <= propertyPrice + BUDGET_TOLERANCE
-      );
+        /* ---------------- AREA (Hard gate) ---------------- */
+        const isAreaMatch =
+          !!propertyArea && tenantAreas.includes(propertyArea);
 
-      // ✅ Rooms exact
-      const isRoomsMatch = tenantRooms.some(
-        (r) => r === propertyRooms
-      );
+        if (!isAreaMatch) return null;
 
-      // ✅ Area mandatory (tenant contains property area)
-      const isAreaMatch =
-        !!propertyArea && tenantAreas.includes(propertyArea);
+        score += 25;
+        matchedCriteria.push("Area Match");
 
-      // ✅ Elevator mandatory
-      const isElevatorMatch =
-        tenant.Elevator === selectedProperty.Elevator;
+        /* ---------------- BUDGET (Hard gate) ---------------- */
+        const isBudgetMatch = tenantBudgets.some(
+          (budget) => propertyPrice <= budget + BUDGET_TOLERANCE
+        );
 
-      // ✅ Parking optional
-      const isParkingMatch =
-        tenant.Parking === selectedProperty.Parking;
+        if (!isBudgetMatch) return null;
 
-      const matchedCriteria: string[] = [];
-      if (isBudgetMatch) matchedCriteria.push("Within Budget");
-      if (isRoomsMatch) matchedCriteria.push("Rooms Match");
-      if (isAreaMatch) matchedCriteria.push("Area Match");
-      if (isElevatorMatch) matchedCriteria.push("Elevator Match");
-      if (isParkingMatch) matchedCriteria.push("Parking Match");
+        score += 25;
+        matchedCriteria.push("Within Budget");
 
-      // ✅ Percentage-based match
-      const matchPercentage = Math.round(
-        (matchedCriteria.length / 5) * 100
-      );
+        /* ---------------- ROOMS (Core score) ---------------- */
+        const isRoomsMatch = tenantRooms.some(
+          (r) => r === propertyRooms || r - 1 === propertyRooms
+        );
 
-      // 🔴 Mandatory rules
-      const isMatch =
-        isBudgetMatch &&
-        isRoomsMatch &&
-        isAreaMatch &&
-        isElevatorMatch &&
-        matchPercentage > 65
-        // isParkingMatch &&
+        if (isRoomsMatch) {
+          score += 25;
+          matchedCriteria.push("Rooms Match");
+        }
 
-      return {
-        tenant,
-        isMatch,
-        matchPercentage: matchedCriteria.length
-          ? Math.round((matchedCriteria.length / 5) * 100)
-          : 0,
-        matchedCriteria,
-      };
-    })
-    .filter((m) => m.isMatch);
-}, [selectedProperty, tenants, filters.tenantStatus]);
+        /* ---------------- ELEVATOR (Bonus) ---------------- */
+        if (tenant.Elevator === selectedProperty.Elevator) {
+          score += 12.5;
+          matchedCriteria.push("Elevator Match");
+        }
 
+        /* ---------------- PARKING (Bonus) ---------------- */
+        if (tenant.Parking === selectedProperty.Parking) {
+          score += 12.5;
+          matchedCriteria.push("Parking Match");
+        }
+
+        return {
+          tenant,
+          matchPercentage: Math.round(score),
+          matchedCriteria,
+          isMatch: true, // already passed hard gates
+        };
+      })
+      .filter(Boolean)
+      .filter((m: any) => m.matchPercentage >= 65);
+  }, [selectedProperty, tenants, filters.tenantStatus]);
+
+  // const matches = useMemo(() => {
+  //   if (!selectedProperty || !tenants) return [];
+
+  //   const propertyPrice = Number(selectedProperty.Asking_price);
+  //   const propertyRooms = Number(selectedProperty.How_many_rooms);
+
+  //   if (isNaN(propertyPrice) || isNaN(propertyRooms)) return [];
+
+  //   const propertyArea =
+  //     selectedProperty.In_which_area_is_the_property?.toString()
+  //       .trim()
+  //       .toLowerCase();
+
+  //   const parseMultiSelect = (value?: string) =>
+  //     value
+  //       ? value
+  //           .split(",")
+  //           .map((v) => v.trim().toLowerCase())
+  //           .filter(Boolean)
+  //       : [];
+
+  //   const BUDGET_TOLERANCE = 500;
+
+  //   return tenants
+  //     .filter((tenant) => {
+  //       if (
+  //         filters.tenantStatus !== "all" &&
+  //         tenant.Status !== filters.tenantStatus
+  //       ) {
+  //         return false;
+  //       }
+  //       return true;
+  //     })
+  //     .map((tenant) => {
+  //       let score = 0;
+  //       const matchedCriteria: string[] = [];
+
+  //       const tenantBudgets = parseBudgetLimits(tenant.Current_budget);
+  //       const tenantRooms = parseRoomNumbers(tenant.Number_of_Rooms);
+
+  //       const tenantAreas = Array.isArray(tenant.In_which_area_are_you_looking)
+  //         ? tenant.In_which_area_are_you_looking.map((v: string) =>
+  //             v.toLowerCase()
+  //           )
+  //         : parseMultiSelect(tenant.In_which_area_are_you_looking);
+
+  //       /* ---------------- AREA (25%) ---------------- */
+  //       const isAreaMatch =
+  //         !!propertyArea && tenantAreas.includes(propertyArea);
+
+  //       if (!isAreaMatch) {
+  //         return null; // ❌ hard stop
+  //       }
+
+  //       score += 25;
+  //       matchedCriteria.push("Area Match");
+
+  //       /* ---------------- BUDGET (25%) ---------------- */
+  //       const isBudgetMatch = tenantBudgets.some(
+  //         (budget) => propertyPrice <= budget + BUDGET_TOLERANCE
+  //       );
+
+  //       if (!isBudgetMatch) {
+  //         return null; // ❌ hard stop
+  //       }
+
+  //       score += 25;
+  //       matchedCriteria.push("Within Budget");
+
+  //       /* ---------------- ROOMS (25%) ---------------- */
+  //       const isRoomsMatch = tenantRooms.some(
+  //         (r) => r === propertyRooms || r - 1 === propertyRooms
+  //       );
+
+  //       if (isRoomsMatch) {
+  //         score += 25;
+  //         matchedCriteria.push("Rooms Match");
+  //       }
+
+  //       /* ---------------- ELEVATOR (12.5%) ---------------- */
+  //       const isElevatorMatch =
+  //         isRoomsMatch && tenant.Elevator === selectedProperty.Elevator;
+
+  //       if (isElevatorMatch) {
+  //         score += 12.5;
+  //         matchedCriteria.push("Elevator Match");
+  //       }
+
+  //       /* ---------------- PARKING (12.5%) ---------------- */
+  //       const isParkingMatch =
+  //         isRoomsMatch && tenant.Parking === selectedProperty.Parking;
+
+  //       if (isParkingMatch) {
+  //         score += 12.5;
+  //         matchedCriteria.push("Parking Match");
+  //       }
+
+  //       return {
+  //         tenant,
+  //         matchPercentage: Math.round(score),
+  //         matchedCriteria,
+  //         isMatch: score >= 65, // Area + Budget minimum
+  //       };
+  //     })
+  //     .filter(Boolean)
+  //     .filter((m: any) => m.isMatch);
+  // }, [selectedProperty, tenants, filters.tenantStatus]);
 
   if (pError || tError)
     return (

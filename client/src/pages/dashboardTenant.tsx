@@ -370,86 +370,181 @@ export default function TenantDashboard() {
     });
   }, [tenants, searchTerm, filters]);
 
-  // Filter properties that match selected tenant
-  const matchedProperties = useMemo(() => {
-    if (!selectedTenant || !properties) return [];
-    const normalize = (v?: string) => v?.toString().trim().toLowerCase() ?? "";
-    const parseMultiSelect = (value?: string | string[]) => {
-      if (Array.isArray(value)) {
-        return value.map((v) => v.toLowerCase());
-      }
-      return value
-        ? value
-            .split(",")
-            .map((v) => v.trim().toLowerCase())
-            .filter(Boolean)
-        : [];
-    };
+  // // Filter properties that match selected tenant
+  // const matchedProperties = useMemo(() => {
+  //   if (!selectedTenant || !properties) return [];
+  //   const normalize = (v?: string) => v?.toString().trim().toLowerCase() ?? "";
+  //   const parseMultiSelect = (value?: string | string[]) => {
+  //     if (Array.isArray(value)) {
+  //       return value.map((v) => v.toLowerCase());
+  //     }
+  //     return value
+  //       ? value
+  //           .split(",")
+  //           .map((v) => v.trim().toLowerCase())
+  //           .filter(Boolean)
+  //       : [];
+  //   };
 
-    const tenantBudgets = parseBudgetLimits(selectedTenant.Current_budget);
-    const tenantRooms = parseRoomNumbers(selectedTenant.Number_of_Rooms);
-    const tenantAreas = parseMultiSelect(
-      selectedTenant.In_which_area_are_you_looking
+  //   const tenantBudgets = parseBudgetLimits(selectedTenant.Current_budget);
+  //   const tenantRooms = parseRoomNumbers(selectedTenant.Number_of_Rooms);
+  //   const tenantAreas = parseMultiSelect(
+  //     selectedTenant.In_which_area_are_you_looking
+  //   );
+
+  //   return properties.filter((p) => {
+  //     const price = Number(p.Asking_price);
+  //     const rooms = Number(p.How_many_rooms);
+
+  //     if (isNaN(price) || isNaN(rooms)) return false;
+
+  //     const propertyArea = normalize(p.In_which_area_is_the_property);
+
+  //     const isAvailabilityMatch =
+  //       filters.availability === "all" ||
+  //       p.Is_the_apartment_available === filters.availability;
+
+  //     const BUDGET_TOLERANCE = 500;
+
+  //     // ✅ Budget ±500 match
+  //     const isPriceMatch =
+  //       tenantBudgets.length === 0 ||
+  //       tenantBudgets.some(
+  //         (budget) =>
+  //           budget >= price - BUDGET_TOLERANCE &&
+  //           budget <= price + BUDGET_TOLERANCE
+  //       );
+
+  //     const isRoomMatch =
+  //       tenantRooms.length === 0 || tenantRooms.some((r) => rooms >= r);
+
+  //     // ✅ Area MANDATORY (tenant contains property area)
+  //     const isAreaMatch = propertyArea && tenantAreas.includes(propertyArea);
+
+  //     // ✅ Elevator MANDATORY
+  //     const isElevatorMatch = selectedTenant.Elevator === p.Elevator;
+
+  //     // ✅ Parking OPTIONAL
+  //     const isParkingMatch = selectedTenant.Parking === p.Parking;
+
+  //      // ✅ Matched criteria array
+  //     const matchedCriteria: string[] = [];
+  //     if (isPriceMatch) matchedCriteria.push("Within Budget");
+  //     if (isRoomMatch) matchedCriteria.push("Rooms Match");
+  //     if (isAreaMatch) matchedCriteria.push("Area Match");
+  //     if (isElevatorMatch) matchedCriteria.push("Elevator Match");
+  //     if (isParkingMatch) matchedCriteria.push("Parking Match");
+
+  //     // ✅ Calculate match percentage
+  //     const matchPercentage = Math.round((matchedCriteria.length / 5) * 100);
+
+
+  //     return (
+  //       isAvailabilityMatch &&
+  //       isPriceMatch &&
+  //       isRoomMatch &&
+  //       matchPercentage > 65 &&
+  //       isAreaMatch &&
+  //       isElevatorMatch
+  //       // isParkingMatch &&
+  //     );
+  //   });
+  // }, [selectedTenant, properties, filters]);
+
+  const matchedProperties = useMemo(() => {
+  if (!selectedTenant || !properties) return [];
+
+  const normalize = (v?: string) =>
+    v?.toString().trim().toLowerCase() ?? "";
+
+  const parseMultiSelect = (value?: string | string[]) => {
+    if (Array.isArray(value)) {
+      return value.map((v) => v.toLowerCase());
+    }
+    return value
+      ? value
+          .split(",")
+          .map((v) => v.trim().toLowerCase())
+          .filter(Boolean)
+      : [];
+  };
+
+  const tenantBudgets = parseBudgetLimits(
+    selectedTenant.Current_budget
+  );
+  const tenantRooms = parseRoomNumbers(
+    selectedTenant.Number_of_Rooms
+  );
+  const tenantAreas = parseMultiSelect(
+    selectedTenant.In_which_area_are_you_looking
+  );
+
+  const BUDGET_TOLERANCE = 500;
+
+  return properties.filter((p) => {
+    const price = Number(p.Asking_price);
+    const rooms = Number(p.How_many_rooms);
+
+    if (isNaN(price) || isNaN(rooms)) return false;
+
+    /* ---------------- Availability ---------------- */
+    const isAvailabilityMatch =
+      filters.availability === "all" ||
+      p.Is_the_apartment_available === filters.availability;
+
+    if (!isAvailabilityMatch) return false;
+
+    /* ---------------- AREA (Hard gate – 25%) ---------------- */
+    const propertyArea = normalize(
+      p.In_which_area_is_the_property
+    );
+    const isAreaMatch =
+      propertyArea && tenantAreas.includes(propertyArea);
+
+    if (!isAreaMatch) return false;
+
+    /* ---------------- BUDGET (Hard gate – 25%) ---------------- */
+    const isBudgetMatch = tenantBudgets.some(
+      (budget) => price <= budget + BUDGET_TOLERANCE
     );
 
-    return properties.filter((p) => {
-      const price = Number(p.Asking_price);
-      const rooms = Number(p.How_many_rooms);
+    if (!isBudgetMatch) return false;
 
-      if (isNaN(price) || isNaN(rooms)) return false;
+    /* ---------------- SCORING ---------------- */
+    let score = 50; // Area (25) + Budget (25)
+    const matchedCriteria: string[] = [
+      "Area Match",
+      "Within Budget",
+    ];
 
-      const propertyArea = normalize(p.In_which_area_is_the_property);
+    /* ---------------- ROOMS (Core – 25%) ---------------- */
+    const isRoomMatch = tenantRooms.some(
+      (r) => r === rooms || r - 1 === rooms
+    );
+    if (isRoomMatch) {
+      score += 25;
+      matchedCriteria.push("Rooms Match");
+    }
 
-      const isAvailabilityMatch =
-        filters.availability === "all" ||
-        p.Is_the_apartment_available === filters.availability;
+    /* ---------------- ELEVATOR (Bonus – 12.5%) ---------------- */
+    if (selectedTenant.Elevator === p.Elevator) {
+      score += 12.5;
+      matchedCriteria.push("Elevator Match");
+    }
 
-      const BUDGET_TOLERANCE = 500;
+    /* ---------------- PARKING (Bonus – 12.5%) ---------------- */
+    if (selectedTenant.Parking === p.Parking) {
+      score += 12.5;
+      matchedCriteria.push("Parking Match");
+    }
 
-      // ✅ Budget ±500 match
-      const isPriceMatch =
-        tenantBudgets.length === 0 ||
-        tenantBudgets.some(
-          (budget) =>
-            budget >= price - BUDGET_TOLERANCE &&
-            budget <= price + BUDGET_TOLERANCE
-        );
+    const matchPercentage = Math.round(score);
 
-      const isRoomMatch =
-        tenantRooms.length === 0 || tenantRooms.some((r) => rooms >= r);
+    /* ---------------- FINAL VISIBILITY RULE ---------------- */
+    return matchPercentage >= 65;
+  });
+}, [selectedTenant, properties, filters]);
 
-      // ✅ Area MANDATORY (tenant contains property area)
-      const isAreaMatch = propertyArea && tenantAreas.includes(propertyArea);
-
-      // ✅ Elevator MANDATORY
-      const isElevatorMatch = selectedTenant.Elevator === p.Elevator;
-
-      // ✅ Parking OPTIONAL
-      const isParkingMatch = selectedTenant.Parking === p.Parking;
-
-       // ✅ Matched criteria array
-      const matchedCriteria: string[] = [];
-      if (isPriceMatch) matchedCriteria.push("Within Budget");
-      if (isRoomMatch) matchedCriteria.push("Rooms Match");
-      if (isAreaMatch) matchedCriteria.push("Area Match");
-      if (isElevatorMatch) matchedCriteria.push("Elevator Match");
-      if (isParkingMatch) matchedCriteria.push("Parking Match");
-
-      // ✅ Calculate match percentage
-      const matchPercentage = Math.round((matchedCriteria.length / 5) * 100);
-
-
-      return (
-        isAvailabilityMatch &&
-        isPriceMatch &&
-        isRoomMatch &&
-        matchPercentage > 65 &&
-        isAreaMatch &&
-        isElevatorMatch
-        // isParkingMatch &&
-      );
-    });
-  }, [selectedTenant, properties, filters]);
 
   if (pError || tError)
     return (
