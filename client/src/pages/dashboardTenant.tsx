@@ -95,7 +95,7 @@ function TenantListItem({
           <p className="text-xs flex items-center gap-1 mt-1">
             <Bed size={12} /> {tenant.Number_of_Rooms || "NA"}
             <ArrowUpDown size={12} /> {tenant.Elevator || "NA"}
-            <Car size={12} /> {tenant.Parking || "NA"}
+            <Car size={12} /> {tenant.Parking_Importance || "NA"}
           </p>
           <p className="text-xs flex items-center gap-1 mt-1">
             <MapPin size={12} /> {tenant.In_which_area_are_you_looking || "NA"}
@@ -212,7 +212,7 @@ function MatchedPropertyCard({
               <ArrowUpDown size={12} /> {property.Elevator || "-"}
             </span>
             <span className="flex items-center gap-1">
-              <Car size={12} /> {property.Parking || "-"}
+              <Car size={12} /> {property.Parking_Type  || "-"}
             </span>
           </span>
         </div>
@@ -514,6 +514,8 @@ export default function TenantDashboard() {
       const isRoomMatch = tenantRooms.some(
         (r) => r === rooms || r - 1 === rooms
       );
+      if (!isRoomMatch) return false; // ❌ reject property
+
       if (isRoomMatch) {
         score += 25;
         matchedCriteria.push("Rooms Match");

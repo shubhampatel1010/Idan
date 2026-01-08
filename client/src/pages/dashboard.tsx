@@ -120,7 +120,7 @@ function PropertyListItem({
               <ArrowUpDown size={12} /> {property.Elevator || "-"}
             </span>
             <span className="flex items-center gap-1">
-              <Car size={12} /> {property.Parking || "-"}
+              <Car size={12} /> {property.Parking_Type  || "-"}
             </span>
           </span>
         </div>
@@ -229,7 +229,7 @@ function MatchedTenantCard({
             {tenant.Elevator}
           </Badge>
           <Badge variant="secondary" className="text-xs">
-            {tenant.Parking}
+            {tenant.Parking_Importance}
           </Badge>
           <Badge
             variant="secondary"
@@ -474,6 +474,9 @@ export default function Dashboard() {
         const isRoomsMatch = tenantRooms.some(
           (r) => r === propertyRooms || r - 1 === propertyRooms
         );
+
+        if (!isRoomsMatch) return null; // ❌ reject if rooms don't match
+
 
         if (isRoomsMatch) {
           score += 25;
