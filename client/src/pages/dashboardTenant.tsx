@@ -137,8 +137,9 @@ function MatchedPropertyCard({
   // const messageText = templateMessage
   //   ? `${templateMessage}\n\nView Property details:`
   //   : "";
-  const messageText = `שלום ${tenant.Full_name},\n\n${templateMessage || ""}\n\nView Property details:`;
-
+  const messageText = `שלום ${tenant.Full_name},\n\n${
+    templateMessage || ""
+  }\n\nView Property details:`;
 
   const propertyPath = `/property-view/${property.id}`;
   const propertyUrl = `${window.location.origin}${propertyPath}`;
@@ -191,8 +192,7 @@ function MatchedPropertyCard({
         </div>
 
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <MapPin size={12} />{" "}
-          {property.Area_registered_in_Arnona || "NA"}
+          <MapPin size={12} /> {property.Area_registered_in_Arnona || "NA"}
           <MapPin size={12} /> {property.In_which_area_is_the_property || "NA"}
           <Mail size={12} /> {property.Email || "NA"}
         </div>
@@ -440,7 +440,6 @@ export default function TenantDashboard() {
   //     // ✅ Calculate match percentage
   //     const matchPercentage = Math.round((matchedCriteria.length / 5) * 100);
 
-
   //     return (
   //       isAvailabilityMatch &&
   //       isPriceMatch &&
@@ -454,103 +453,126 @@ export default function TenantDashboard() {
   // }, [selectedTenant, properties, filters]);
 
   const matchedProperties = useMemo(() => {
-  if (!selectedTenant || !properties) return [];
+    if (!selectedTenant || !properties) return [];
 
-  const normalize = (v?: string) =>
-    v?.toString().trim().toLowerCase() ?? "";
+    const normalize = (v?: string) => v?.toString().trim().toLowerCase() ?? "";
 
-  const parseMultiSelect = (value?: string | string[]) => {
-    if (Array.isArray(value)) {
-      return value.map((v) => v.toLowerCase());
-    }
-    return value
-      ? value
-          .split(",")
-          .map((v) => v.trim().toLowerCase())
-          .filter(Boolean)
-      : [];
-  };
+    const parseMultiSelect = (value?: string | string[]) => {
+      if (Array.isArray(value)) {
+        return value.map((v) => v.toLowerCase());
+      }
+      return value
+        ? value
+            .split(",")
+            .map((v) => v.trim().toLowerCase())
+            .filter(Boolean)
+        : [];
+    };
 
-  const tenantBudgets = parseBudgetLimits(
-    selectedTenant.Current_budget
-  );
-  const tenantRooms = parseRoomNumbers(
-    selectedTenant.Number_of_Rooms
-  );
-  const tenantAreas = parseMultiSelect(
-    selectedTenant.In_which_area_are_you_looking
-  );
-
-  const BUDGET_TOLERANCE_DOWN = 1500; // allowed below tenant budget
-  const BUDGET_TOLERANCE_UP = 500;    // allowed above tenant budget
-
-  return properties.filter((p) => {
-    const price = Number(p.Asking_price);
-    const rooms = Number(p.How_many_rooms);
-
-    if (isNaN(price) || isNaN(rooms)) return false;
-
-    /* ---------------- Availability ---------------- */
-    const isAvailabilityMatch =
-      filters.availability === "all" ||
-      p.Is_the_apartment_available === filters.availability;
-
-    if (!isAvailabilityMatch) return false;
-
-    /* ---------------- AREA (Hard gate – 25%) ---------------- */
-    const propertyArea = normalize(
-      p.In_which_area_is_the_property
+    const tenantBudgets = parseBudgetLimits(selectedTenant.Current_budget);
+    const tenantRooms = parseRoomNumbers(selectedTenant.Number_of_Rooms);
+    const tenantAreas = parseMultiSelect(
+      selectedTenant.In_which_area_are_you_looking
     );
-    const isAreaMatch =
-      propertyArea && tenantAreas.includes(propertyArea);
 
-    if (!isAreaMatch) return false;
+    const BUDGET_TOLERANCE_DOWN = 1500; // allowed below tenant budget
+    const BUDGET_TOLERANCE_UP = 500; // allowed above tenant budget
 
-    /* ---------------- BUDGET (Hard gate – 25%) ---------------- */
-    const isBudgetMatch = tenantBudgets.some((budget) => {
-      const min = budget - BUDGET_TOLERANCE_DOWN;
-      const max = budget + BUDGET_TOLERANCE_UP;
-      return price >= min && price <= max;
+    return properties.filter((p) => {
+      const price = Number(p.Asking_price);
+      const rooms = Number(p.How_many_rooms);
+
+      if (isNaN(price) || isNaN(rooms)) return false;
+
+      /* ---------------- Availability ---------------- */
+      const isAvailabilityMatch =
+        filters.availability === "all" ||
+        p.Is_the_apartment_available === filters.availability;
+
+      if (!isAvailabilityMatch) return false;
+
+      /* ---------------- AREA (Hard gate – 25%) ---------------- */
+      const propertyArea = normalize(p.In_which_area_is_the_property);
+      const isAreaMatch = propertyArea && tenantAreas.includes(propertyArea);
+
+      if (!isAreaMatch) return false;
+
+      /* ---------------- BUDGET (Hard gate – 25%) ---------------- */
+      const isBudgetMatch = tenantBudgets.some((budget) => {
+        const min = budget - BUDGET_TOLERANCE_DOWN;
+        const max = budget + BUDGET_TOLERANCE_UP;
+        return price >= min && price <= max;
+      });
+
+      if (!isBudgetMatch) return false;
+
+      /* ---------------- SCORING ---------------- */
+      let score = 50; // Area (25) + Budget (25)
+      const matchedCriteria: string[] = ["Area Match", "Within Budget"];
+
+      /* ---------------- ROOMS (Core – 25%) ---------------- */
+      const isRoomMatch = tenantRooms.some(
+        (r) => r === rooms || r - 1 === rooms
+      );
+      if (isRoomMatch) {
+        score += 25;
+        matchedCriteria.push("Rooms Match");
+      }
+
+      /* ---------------- ELEVATOR (Bonus – 12.5%) ---------------- */
+      if (selectedTenant.Elevator === p.Elevator) {
+        score += 12.5;
+        matchedCriteria.push("Elevator Match");
+      }
+
+      /* ---------------- PARKING (Rule-based – 12.5%) ---------------- */
+
+      const tenantParking =
+        selectedTenant.Parking_Importance?.toString().trim();
+
+      const propertyParking = p.Parking_Type?.toString().trim();
+
+      let parkingScore = 0;
+
+      // MUST HAVE PARKING → HARD GATE
+      if (
+        tenantParking ===
+        "Must have parking (without parking it is not relevant)"
+      ) {
+        if (propertyParking !== "Private parking") {
+          return false; // ❌ property not relevant
+        }
+        parkingScore = 12.5;
+      }
+
+      // DESIRABLE BUT NOT MANDATORY → SOFT MATCH
+      else if (tenantParking === "Parking is desirable but not mandatory") {
+        if (
+          propertyParking === "Private parking" ||
+          propertyParking === "Shared parking / based on availability"
+        ) {
+          parkingScore = 12.5;
+        } else {
+          parkingScore = 5; // weak but allowed
+        }
+      }
+
+      // NO PARKING REQUIRED → ALWAYS OK
+      else if (tenantParking === "No parking required") {
+        parkingScore = 12.5;
+      }
+
+      if (parkingScore > 0) {
+        score += parkingScore;
+        matchedCriteria.push("Parking Match");
+      }
+
+      const matchPercentage = Math.round(score);
+
+      /* ---------------- FINAL VISIBILITY RULE ---------------- */
+      return matchPercentage >= 65;
     });
-
-
-    if (!isBudgetMatch) return false;
-
-    /* ---------------- SCORING ---------------- */
-    let score = 50; // Area (25) + Budget (25)
-    const matchedCriteria: string[] = [
-      "Area Match",
-      "Within Budget",
-    ];
-
-    /* ---------------- ROOMS (Core – 25%) ---------------- */
-    const isRoomMatch = tenantRooms.some(
-      (r) => r === rooms || r - 1 === rooms
-    );
-    if (isRoomMatch) {
-      score += 25;
-      matchedCriteria.push("Rooms Match");
-    }
-
-    /* ---------------- ELEVATOR (Bonus – 12.5%) ---------------- */
-    if (selectedTenant.Elevator === p.Elevator) {
-      score += 12.5;
-      matchedCriteria.push("Elevator Match");
-    }
-
-    /* ---------------- PARKING (Bonus – 12.5%) ---------------- */
-    if (selectedTenant.Parking === p.Parking) {
-      score += 12.5;
-      matchedCriteria.push("Parking Match");
-    }
-
-    const matchPercentage = Math.round(score);
-
-    /* ---------------- FINAL VISIBILITY RULE ---------------- */
-    return matchPercentage >= 65;
-  });
-}, [selectedTenant, properties, filters]);
-
+  }, [selectedTenant, properties, filters]);
 
   if (pError || tError)
     return (
@@ -707,7 +729,7 @@ export default function TenantDashboard() {
                   maxRent: 50000,
                   bedrooms: 0,
                   availability: "Available",
-                  Status:"Active"
+                  Status: "Active",
                 })
               }
               className="w-full mt-2"

@@ -155,8 +155,9 @@ function MatchedTenantCard({
   // const messageText = templateMessage
   //   ? `${templateMessage}\n\nView Property details:`
   //   : "";
-  const messageText = `שלום ${tenant.Full_name},\n\n${templateMessage || ""}\n\nView Property details:`;
-
+  const messageText = `שלום ${tenant.Full_name},\n\n${
+    templateMessage || ""
+  }\n\nView Property details:`;
 
   const propertyPath = `/property-view/${selectedProperty.id}`;
   const propertyUrl = `${window.location.origin}${propertyPath}`;
@@ -237,7 +238,7 @@ function MatchedTenantCard({
             {tenant.In_which_area_are_you_looking}
           </Badge>
         </div>
-        
+
         <div className="relative border rounded-md bg-muted/40 p-3 text-xs whitespace-pre-line">
           <div className="absolute top-2 right-2 flex gap-1">
             <Button
@@ -300,7 +301,7 @@ export default function Dashboard() {
     parking: null,
     balcony: null,
     availability: "Available",
-    tenantStatus: "all", // 👈 ADD
+    tenantStatus: "Active", // 👈 ADD
   });
 
   const {
@@ -357,7 +358,7 @@ export default function Dashboard() {
       if (filters.elevator && p.Elevator !== filters.elevator) return false;
 
       // חניה
-      if (filters.parking && p.Parking !== filters.parking) return false;
+      if (filters.parking && p.Parking_Type !== filters.parking) return false;
 
       // מרפסת
       if (filters.balcony && p.Is_there_a_balcony !== filters.balcony)
@@ -486,8 +487,43 @@ export default function Dashboard() {
         }
 
         /* ---------------- PARKING (Bonus) ---------------- */
-        if (tenant.Parking === selectedProperty.Parking) {
-          score += 12.5;
+
+        const tenantParking = tenant.Parking_Importance?.toString().trim();
+        const propertyParking =
+          selectedProperty.Parking_Type?.toString().trim();
+
+        let parkingScore = 0;
+
+        // MUST HAVE PARKING → HARD GATE
+        if (
+          tenantParking ===
+          "Must have parking (without parking it is not relevant)"
+        ) {
+          if (propertyParking !== "Private parking") {
+            return null; // ❌ reject tenant
+          }
+          parkingScore = 12.5;
+        }
+
+        // DESIRABLE → SOFT LOGIC
+        else if (tenantParking === "Parking is desirable but not mandatory") {
+          if (
+            propertyParking === "Private parking" ||
+            propertyParking === "Shared parking / based on availability"
+          ) {
+            parkingScore = 12.5;
+          } else {
+            parkingScore = 5; // weak but allowed
+          }
+        }
+
+        // NO PARKING REQUIRED → ALWAYS OK
+        else if (tenantParking === "No parking required") {
+          parkingScore = 12.5;
+        }
+
+        if (parkingScore > 0) {
+          score += parkingScore;
           matchedCriteria.push("Parking Match");
         }
 
@@ -738,11 +774,9 @@ export default function Dashboard() {
                 className="w-full border p-2 rounded"
               >
                 <option value="all">הכל</option>
-                <option value="פרטי">פרטי</option>
-                <option value="אין">אין</option>
-                <option value="משותף">משותף</option>
-                <option value="עוקב">עוקב</option>
-                <option value="2 חניות">2 חניות</option>
+                <option value="אֵין חֲנִייָה">אֵין חֲנִייָה</option>
+                <option value="חניה משותפת / על בסיס מקום פנוי">חניה משותפת / על בסיס מקום פנוי</option>
+                <option value="חניה פרטית">חניה פרטית</option>
               </select>
             </div>
 
@@ -811,7 +845,7 @@ export default function Dashboard() {
                   parking: null,
                   balcony: null,
                   availability: "Available",
-                  tenantStatus: "all",
+                  tenantStatus: "Active",
                 })
               }
               className="w-full mt-2"
