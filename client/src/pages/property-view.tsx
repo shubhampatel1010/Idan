@@ -340,8 +340,8 @@ export default function PropertyView() {
                   </p>
                 </div>
                 <div>
-                  <span className="text-sm text-muted-foreground">חֲנָיָה</span>
-                  <p className="font-medium">{formatValue(property.Parking)}</p>
+                  <span className="text-sm text-muted-foreground">סוג חניה</span>
+                  <p className="font-medium">{formatValue(property.Parking_Type)}</p>
                 </div>
                 <div>
                   <span className="text-sm text-muted-foreground">
@@ -617,7 +617,7 @@ export default function PropertyView() {
                 <div className="grid grid-cols-[24px_1fr] items-center gap-3">
                   <Car className="h-5 w-5 text-muted-foreground" />
                   <span>
-                    <b>חֲנָיָה</b>: {formatValue(property.Parking)}
+                    <b>סוג חניה</b>: {formatValue(property.Parking_Type)}
                   </span>
                 </div>
 
