@@ -72,7 +72,7 @@ export default function PropertyList() {
 
           {/* Bedrooms */}
           <div>
-            <label className="block mb-1 font-medium">Bedrooms</label>
+            <label className="block mb-1 font-medium">חדרי שינה</label>
             <input
               type="number"
               min={0}
@@ -84,7 +84,7 @@ export default function PropertyList() {
 
           {/* Rent */}
           <div>
-            <label className="block mb-1 font-medium">Rent (ILS)</label>
+            <label className="block mb-1 font-medium">לִשְׂכּוֹר (ILS)</label>
             <div className="flex gap-2">
               <input
                 type="number"
@@ -106,7 +106,7 @@ export default function PropertyList() {
           </div>
 
           <div>
-              <label className="block mb-1 text-sm font-medium">Elevator</label>
+              <label className="block mb-1 text-sm font-medium">מַעֲלִית</label>
               <select
                 value={filters.elevator ?? "all"}
                 onChange={(e) =>
@@ -125,7 +125,7 @@ export default function PropertyList() {
             </div>
 
             <div>
-              <label className="block mb-1 text-sm font-medium">Parking</label>
+              <label className="block mb-1 text-sm font-medium">חֲנָיָה</label>
               <select
                 value={filters.parking ?? "all"}
                 onChange={(e) =>
@@ -146,7 +146,7 @@ export default function PropertyList() {
             </div>
 
             <div>
-              <label className="block mb-1 text-sm font-medium">Balcony</label>
+              <label className="block mb-1 text-sm font-medium">מִרפֶּסֶת</label>
               <select
                 value={filters.balcony ?? "all"}
                 onChange={(e) =>
@@ -165,7 +165,7 @@ export default function PropertyList() {
 
           {/* Availability */}
           <div>
-            <label className="block mb-1 font-medium">Availability</label>
+            <label className="block mb-1 font-medium">זְמִינוּת</label>
             <select
               value={filters.availability}
               onChange={(e) => setFilters({ ...filters, availability: e.target.value })}

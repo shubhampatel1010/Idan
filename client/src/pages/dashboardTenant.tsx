@@ -651,7 +651,7 @@ export default function TenantDashboard() {
             {/* Tenant Search */}
             <div>
               <label className="block mb-1 text-sm font-small">
-                Search Tenant
+                חפש דייר
               </label>
               <input
                 type="text"
@@ -663,7 +663,7 @@ export default function TenantDashboard() {
             </div>
 
             <div>
-              <label className="block mb-1 text-sm font-medium">Bedrooms</label>
+              <label className="block mb-1 text-sm font-medium">חדרי שינה</label>
               <input
                 type="number"
                 min={0}
@@ -675,7 +675,7 @@ export default function TenantDashboard() {
               />
             </div>
             <div>
-              <label className="block mb-1 text-sm font-medium">Rent (₪)</label>
+              <label className="block mb-1 text-sm font-medium">לִשְׂכּוֹר (₪)</label>
               <div className="flex gap-2">
                 <input
                   type="number"
@@ -701,7 +701,7 @@ export default function TenantDashboard() {
             </div>
             <div>
               <label className="block mb-1 text-sm font-medium">
-                Tenant Status
+                סטטוס דייר
               </label>
               <select
                 value={filters.Status}
@@ -717,7 +717,7 @@ export default function TenantDashboard() {
             </div>
             <div>
               <label className="block mb-1 text-sm font-medium">
-                Property Availability
+                זמינות נכס
               </label>
               <select
                 value={filters.availability}

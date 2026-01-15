@@ -725,7 +725,7 @@ export default function Dashboard() {
             <h2 className="text-lg font-semibold">Filters</h2>
 
             <div>
-              <label className="block mb-1 text-sm font-medium">Bedrooms</label>
+              <label className="block mb-1 text-sm font-medium">חדרי שינה</label>
               <input
                 type="number"
                 min={0}
@@ -738,7 +738,7 @@ export default function Dashboard() {
             </div>
 
             <div>
-              <label className="block mb-1 text-sm font-medium">Rent (₪)</label>
+              <label className="block mb-1 text-sm font-medium">לִשְׂכּוֹר (₪)</label>
               <div className="flex gap-2">
                 <input
                   type="number"
@@ -764,7 +764,7 @@ export default function Dashboard() {
             </div>
 
             <div>
-              <label className="block mb-1 text-sm font-medium">Elevator</label>
+              <label className="block mb-1 text-sm font-medium">מַעֲלִית</label>
               <select
                 value={filters.elevator ?? "all"}
                 onChange={(e) =>
@@ -782,7 +782,7 @@ export default function Dashboard() {
             </div>
 
             <div>
-              <label className="block mb-1 text-sm font-medium">Parking</label>
+              <label className="block mb-1 text-sm font-medium">חֲנָיָה</label>
               <select
                 value={filters.parking ?? "all"}
                 onChange={(e) =>
@@ -801,7 +801,7 @@ export default function Dashboard() {
             </div>
 
             <div>
-              <label className="block mb-1 text-sm font-medium">Balcony</label>
+              <label className="block mb-1 text-sm font-medium">מִרפֶּסֶת</label>
               <select
                 value={filters.balcony ?? "all"}
                 onChange={(e) =>
@@ -820,7 +820,7 @@ export default function Dashboard() {
 
             <div>
               <label className="block mb-1 text-sm font-medium">
-                Property Availability
+                זמינות נכס
               </label>
               <select
                 value={filters.availability}
@@ -837,7 +837,7 @@ export default function Dashboard() {
             </div>
             <div>
               <label className="block mb-1 text-sm font-medium">
-                Tenant Status
+                סטטוס דייר
               </label>
               <select
                 value={filters.tenantStatus}

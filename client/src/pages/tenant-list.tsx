@@ -231,14 +231,14 @@ export default function TenantList() {
         {/* ================= FILTERS ================= */}
         <aside className="w-full lg:w-64 bg-white p-4 rounded shadow space-y-4">
           <h2 className="font-semibold text-lg">Filters</h2>
-            <label className="block text-sm mb-1">Search by Name</label>
+            <label className="block text-sm mb-1">חפש לפי שם</label>
           <input
             value={nameSearch}
             onChange={(e) => setNameSearch(e.target.value)}
             placeholder="Search by name"
             className="w-full border p-2 rounded"
           />
-            <label className="block text-sm mb-1">Tenant Status</label>
+            <label className="block text-sm mb-1">סטטוס דייר</label>
   
           <select
             value={status}
@@ -250,7 +250,7 @@ export default function TenantList() {
             <option value="Inactive">Inactive</option>
           </select>
           
-            <label className="block text-sm mb-1">Budget(₪)</label>
+            <label className="block text-sm mb-1">תַקצִיב(₪)</label>
   
           <div className="flex gap-2">
             <input
@@ -268,7 +268,7 @@ export default function TenantList() {
               className="w-1/2 border p-2 rounded"
             />
           </div>
-            <label className="block text-sm mb-1">Bedrooms</label>
+            <label className="block text-sm mb-1">חדרי שינה</label>
   
           <input
             type="number"
@@ -279,7 +279,7 @@ export default function TenantList() {
           />
 
           <div>
-            <label className="text-sm">Date From</label>
+            <label className="text-sm">תאריך מ</label>
             <input
               type="date"
               value={dateFrom}
@@ -289,7 +289,7 @@ export default function TenantList() {
           </div>
 
           <div>
-            <label className="text-sm">Date To</label>
+            <label className="text-sm">תאריך אל</label>
             <input
               type="date"
               value={dateTo}
