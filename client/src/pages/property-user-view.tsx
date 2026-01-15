@@ -161,7 +161,7 @@ export default function PropertyUserView() {
                   <ArrowLeft className="h-5 w-5" />
                 </Button>
               </Link> */}
-              <div>
+              {/* <div>
                 <h1 className="text-3xl font-bold">
                   {property.Property_owner_name || "Unnamed Property"}
                 </h1>
@@ -169,7 +169,7 @@ export default function PropertyUserView() {
                   <MapPin className="h-4 w-4" />
                   <span>{property.Property_Address || "Unknown location"}</span>
                 </div>
-              </div>
+              </div> */}
             </div>
 
             {/* Images */}
@@ -688,18 +688,18 @@ export default function PropertyUserView() {
                             p.Property_Image?.[0]?.url ||
                             "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400&auto=format&fit=crop&q=80"
                           }
-                          alt={p.Property_owner_name}
+                          alt={p.In_which_area_is_the_property}
                           className="object-cover w-full h-40 rounded"
                         />
                         <CardHeader>
                           <CardTitle>
-                            {p.Property_owner_name || "Unnamed Property"}
+                             <MapPin className="inline mr-1" />{" "}{p.In_which_area_is_the_property || "Unnamed Area"}
                           </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-1">
                           <p>
                             <MapPin className="inline mr-1" />{" "}
-                            {p.Property_Address}
+                            {p.Area_registered_in_Arnona}
                           </p>
                           <p>חדרים: {p.How_many_rooms || "-"}</p>
                           <p>מְחִיר: {p.Asking_price || "-"}</p>

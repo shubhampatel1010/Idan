@@ -471,9 +471,11 @@ export default function Dashboard() {
         matchedCriteria.push("Within Budget");
 
         /* ---------------- ROOMS (Core score) ---------------- */
-        const isRoomsMatch = tenantRooms.some(
-          (r) => r === propertyRooms || r - 1 === propertyRooms
-        );
+        const isRoomsMatch = tenantRooms.some((tenantRoom) => {
+          const min = tenantRoom - 0.5;
+          const max = tenantRoom + 1;
+          return propertyRooms >= min && propertyRooms <= max;
+        });
 
         if (!isRoomsMatch) return null; // ❌ reject if rooms don't match
 

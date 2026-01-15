@@ -7,21 +7,33 @@ import { fetchTenantById, updateTenant } from "@/lib/airtable";
 /* ---------------- BUDGET OPTIONS ---------------- */
 
 const BUDGET_OPTIONS = [
-  "עד 14,000₪",
-  "עד 9,000₪",
-  "עד 18,000₪",
-  "עד 10,000₪",
   "עד 5,000₪",
-  "עד 16,000₪",
-  "עד 8,000₪",
-  "עד 7,000₪",
   "עד 6,000₪",
+  "עד 7,000₪",
+  "עד 8,000₪",
+  "עד 9,000₪",
+  "עד 10,000₪",
   "עד 12,000₪",
+  "עד 14,000₪",
+  "עד 16,000₪",
+  "עד 18,000₪",
   "עד 20,000₪",
   "עד 25,000₪",
 ];
 
-const ROOM_OPTIONS = ["2 חדרים", "3 חדרים", "4 חדרים", "5 חדרים"];
+const ROOM_OPTIONS = [
+  "1 חדרים",
+  "1.5 חדרים",
+  "2 חדרים",
+  "2.5 חדרים",
+  "3 חדרים",
+  "3.5 חדרים",
+  "4 חדרים",
+  "4.5 חדרים",
+  "5 חדרים",
+  "5.5 חדרים",
+  "6 חדרים",
+];
 
 const IMPORTANT_OPTIONS = [
   "מרפסת",
@@ -32,7 +44,6 @@ const IMPORTANT_OPTIONS = [
   "שקט",
   "מעלית חובה",
   "מרחב מוגן",
-  "סלון גדול",
   "שטח חיצוני",
   "נוף פתוח",
   "מרוהטת",
@@ -72,9 +83,9 @@ const AREA_OPTIONS = [
   "נווה שאנן",
   "יד אליהו",
   "נחלת יצחק",
-  "יד אליהו",
-  "נחלת יצחק"
-  
+  "ביצרון",
+  "מגדלי הצעירים",
+  "מגדלי מידטאון",
 ];
 
 /* ---------------- COMPONENT ---------------- */
@@ -100,6 +111,7 @@ export default function TenantEdit() {
     Requirement_decription: "",
     Elevator: "", // 🔹 new
     Parking: "", // 🔹 new
+    Assigned_Agent: "", // 🔹 new
   });
 
   /* ---------------- FETCH TENANT ---------------- */
@@ -159,6 +171,7 @@ export default function TenantEdit() {
 
         Elevator: data.Elevator || "",
         Parking: data.Parking || "",
+        Assigned_Agent: data.Assigned_Agent || "",
       });
     }
   }, [data]);
@@ -224,12 +237,30 @@ export default function TenantEdit() {
   return (
     <Layout>
       <div className="max-w-4xl mx-auto bg-white p-6 rounded shadow">
-        <h2 className="text-xl font-semibold mb-6">Edit Tenant</h2>
+        <h2 className="text-xl font-semibold mb-6">ערוך דייר</h2>
 
         <form onSubmit={handleSubmit} className="space-y-5">
+          <div>
+            <label className="block text-sm font-medium mb-1">
+              סוכן מוקצה?
+            </label>
+            <select
+              name="Assigned_Agent"
+              value={form.Assigned_Agent}
+              onChange={handleChange}
+              className="w-full border p-2 rounded"
+              required
+            >
+              <option value="">Select</option>
+              <option value="עידן">עידן</option>
+              <option value="גלעד">גלעד</option>
+              <option value="איתמר">איתמר</option>
+              <option value="יונתן">יונתן</option>
+            </select>
+          </div>
           {/* FULL NAME */}
           <div>
-            <label className="block text-sm font-medium mb-1">Full Name</label>
+            <label className="block text-sm font-medium mb-1">שם מלא</label>
             <input
               name="Full_name"
               value={form.Full_name}
@@ -242,7 +273,7 @@ export default function TenantEdit() {
           {/* PHONE NUMBER */}
           <div>
             <label className="block text-sm font-medium mb-1">
-              Phone Number
+              מספר טלפון
             </label>
             <input
               name="Phone_number"
@@ -256,7 +287,7 @@ export default function TenantEdit() {
           {/* ENTRY DATE */}
           <div>
             <label className="block text-sm font-medium mb-1">
-              When is the entry date set?
+              למתי מכוונים מועד כניסה?
             </label>
             <select
               name="When_is_the_entry_date_set"
@@ -274,7 +305,7 @@ export default function TenantEdit() {
           {/* ROOMS */}
           <div>
             <label className="block text-sm font-medium mb-2">
-              Number of Rooms
+              כמה חדרים
             </label>
 
             <div className="border rounded p-3 space-y-2">
@@ -304,7 +335,7 @@ export default function TenantEdit() {
           {/* AGE */}
           <div>
             <label className="block text-sm font-medium mb-1">
-              How old will you be?
+              כמה תהיו?
             </label>
             <select
               name="How_old_will_you_be"
@@ -324,7 +355,7 @@ export default function TenantEdit() {
           {/* BUDGET MULTI SELECT */}
           <div>
             <label className="block text-sm font-medium mb-2">
-              Current budget
+              תקציב נוכחי
             </label>
 
             <div className="border rounded p-3 max-h-56 overflow-y-auto space-y-2">
@@ -350,25 +381,41 @@ export default function TenantEdit() {
               ))}
             </div>
           </div>
-
-          {/* STATUS */}
+          {/* AREA */}
           <div>
-            <label className="block text-sm font-medium mb-1">Status</label>
-            <select
-              name="Status"
-              value={form.Status}
-              onChange={handleChange}
-              className="w-full border p-2 rounded"
-            >
-              <option value="Active">Active</option>
-              <option value="Inactive">Inactive</option>
-            </select>
+            <label className="block text-sm font-medium mb-2">
+              באיזה איזור אתם מחפשים
+            </label>
+
+            <div className="border rounded p-3 space-y-2 max-h-56 overflow-y-auto">
+              {AREA_OPTIONS.map((area) => (
+                <label key={area} className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={form.In_which_area_are_you_looking.includes(area)}
+                    onChange={(e) => {
+                      setForm((prev: any) => {
+                        const current =
+                          prev.In_which_area_are_you_looking || [];
+                        return {
+                          ...prev,
+                          In_which_area_are_you_looking: e.target.checked
+                            ? [...current, area]
+                            : current.filter((v: string) => v !== area),
+                        };
+                      });
+                    }}
+                  />
+                  {area}
+                </label>
+              ))}
+            </div>
           </div>
 
           {/* IMPORTANT THING */}
           <div>
             <label className="block text-sm font-medium mb-2">
-              Most important thing in apartment
+               חשוב לי שיהיה (אפשר לבחור כמה אפשרויות)
             </label>
 
             <div className="border rounded p-3 space-y-2">
@@ -400,72 +447,10 @@ export default function TenantEdit() {
             </div>
           </div>
 
-          {/* AREA */}
-          <div>
-            <label className="block text-sm font-medium mb-2">
-              Area you are looking in
-            </label>
-
-            <div className="border rounded p-3 space-y-2 max-h-56 overflow-y-auto">
-              {AREA_OPTIONS.map((area) => (
-                <label key={area} className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={form.In_which_area_are_you_looking.includes(area)}
-                    onChange={(e) => {
-                      setForm((prev: any) => {
-                        const current =
-                          prev.In_which_area_are_you_looking || [];
-                        return {
-                          ...prev,
-                          In_which_area_are_you_looking: e.target.checked
-                            ? [...current, area]
-                            : current.filter((v: string) => v !== area),
-                        };
-                      });
-                    }}
-                  />
-                  {area}
-                </label>
-              ))}
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Elevator?</label>
-            <select
-              name="Elevator"
-              value={form.Elevator}
-              onChange={handleChange}
-              className="w-full border p-2 rounded"
-              required
-            >
-              <option value="">Select</option>
-              <option value="כן">כן</option>
-              <option value="לא">לא</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Parking?</label>
-            <select
-              name="Parking"
-              value={form.Parking}
-              onChange={handleChange}
-              required
-              className="w-full border p-2 rounded"
-            >
-              <option value="">Select</option>
-              <option value="פרטית">פרטית</option>
-              <option value="אין">אין</option>
-              <option value="משותפת">משותפת</option>
-              <option value="עוקבת">עוקבת</option>
-              <option value="2 חניות">2 חניות</option>
-            </select>
-          </div>
-
           {/* APARTMENTS SEEN */}
           <div>
             <label className="block text-sm font-medium mb-1">
-              How many apartments have you seen?
+              כמה דירות ראיתם?
             </label>
             <select
               name="How_many_apartments_have_you_seen"
@@ -483,10 +468,55 @@ export default function TenantEdit() {
             </select>
           </div>
 
+          <div>
+            <label className="block text-sm font-medium mb-1">האם נדרשת מעלית?</label>
+            <select
+              name="Elevator"
+              value={form.Elevator}
+              onChange={handleChange}
+              className="w-full border p-2 rounded"
+              required
+            >
+              <option value="">Select</option>
+              <option value="כן">כן</option>
+              <option value="לא">לא</option>
+              <option value="מקומה 2 ומעלה - חובה במעלית">מקומה 2 ומעלה - חובה במעלית</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">כמה חשובה לכם החניה?</label>
+            <select
+              name="Parking"
+              value={form.Parking}
+              onChange={handleChange}
+              required
+              className="w-full border p-2 rounded"
+            >
+              <option value="">Select</option>
+              <option value="חייבת חניה (ללא חניה זה לא רלוונטי)">חייבת חניה (ללא חניה זה לא רלוונטי)</option>
+              <option value="רצוי שתהיה חניה אך לא חובה">רצוי שתהיה חניה אך לא חובה</option>
+              <option value="אין צורך בחניה">אין צורך בחניה</option>
+              
+            </select>
+          </div>
+
+          {/* REQUIREMENT */}
+          <div>
+            <label className="block text-sm font-medium mb-1">
+              פה תוכלו לכתוב לנו בסגנון שלכם ובדרך שלכם מה בדיוק אתם מחפשים
+            </label>
+            <textarea
+              name="Requirement_decription"
+              value={form.Requirement_decription}
+              onChange={handleChange}
+              className="w-full border p-2 rounded"
+            />
+          </div>
+
           {/* PHONE CALL */}
           <div>
             <label className="block text-sm font-medium mb-1">
-              Do you want us to talk on the phone?
+              לא נוח לך השאלון? רוצים שנדבר בטלפון?
             </label>
             <select
               name="Do_you_want_us_to_talk_on_the_phone"
@@ -502,17 +532,18 @@ export default function TenantEdit() {
             </select>
           </div>
 
-          {/* REQUIREMENT */}
+          {/* STATUS */}
           <div>
-            <label className="block text-sm font-medium mb-1">
-              Requirement description
-            </label>
-            <textarea
-              name="Requirement_decription"
-              value={form.Requirement_decription}
+            <label className="block text-sm font-medium mb-1">סטָטוּס</label>
+            <select
+              name="Status"
+              value={form.Status}
               onChange={handleChange}
               className="w-full border p-2 rounded"
-            />
+            >
+              <option value="Active">Active</option>
+              <option value="Inactive">Inactive</option>
+            </select>
           </div>
 
           {/* ACTIONS */}

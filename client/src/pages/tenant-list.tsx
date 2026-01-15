@@ -58,6 +58,7 @@ export default function TenantList() {
   const [nameSearch, setNameSearch] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [agent, setAgent] = useState("");
 
   /* ---------- LOAD FILTERS FROM STORAGE ---------- */
 
@@ -73,6 +74,7 @@ export default function TenantList() {
     setNameSearch(f.nameSearch ?? "");
     setDateFrom(f.dateFrom ?? "");
     setDateTo(f.dateTo ?? "");
+    setAgent(f.agent ?? "");
   }, []);
 
   /* ---------- SAVE FILTERS ---------- */
@@ -88,9 +90,10 @@ export default function TenantList() {
         nameSearch,
         dateFrom,
         dateTo,
+        agent,
       })
     );
-  }, [status, minBudget, maxBudget, rooms, nameSearch, dateFrom, dateTo]);
+  }, [status, minBudget, maxBudget, rooms, nameSearch, dateFrom, dateTo, agent]);
 
   /* ---------- DATA ---------- */
 
@@ -163,6 +166,12 @@ export default function TenantList() {
           return false;
         }
       }
+      /* Agent filter */
+      if (agent) {
+        if (t.Assigned_Agent !== agent) {
+          return false;
+        }
+      }
 
       return true;
     })
@@ -181,6 +190,7 @@ export default function TenantList() {
     nameSearch,
     dateFrom,
     dateTo,
+    agent,
   ]);
 
   /* ---------- STATUS TOGGLE ---------- */
@@ -239,6 +249,7 @@ export default function TenantList() {
             <option value="Active">Active</option>
             <option value="Inactive">Inactive</option>
           </select>
+          
             <label className="block text-sm mb-1">Budget(₪)</label>
   
           <div className="flex gap-2">
@@ -286,6 +297,22 @@ export default function TenantList() {
               className="w-full border p-2 rounded"
             />
           </div>
+          <label className="block text-sm font-medium mb-1">
+              סוכן מוקצה?
+            </label>
+            <select
+              name="Assigned_Agent"
+              value={agent}
+              onChange={(e) => setAgent(e.target.value as any)}
+              className="w-full border p-2 rounded"
+              required
+            >
+              <option value="">כֹּל</option>
+              <option value="עידן">עידן</option>
+              <option value="גלעד">גלעד</option>
+              <option value="איתמר">איתמר</option>
+              <option value="יונתן">יונתן</option>
+            </select>
 
           <button
             onClick={() => {
@@ -296,6 +323,7 @@ export default function TenantList() {
               setNameSearch("");
               setDateFrom("");
               setDateTo("");
+              setAgent("");
               localStorage.removeItem(FILTER_KEY);
             }}
             className="w-full bg-blue-600 text-white p-2 rounded"
@@ -320,13 +348,14 @@ export default function TenantList() {
               <thead className="bg-gray-100 text-left">
                 <tr>
                   <th className="p-3">Date</th>
-                  <th className="p-3">Name</th>
-                  <th className="p-3">Phone</th>
+                  <th className="p-3">Name/Phone</th>
+                  {/* <th className="p-3">Phone</th> */}
                   <th className="p-3">Rooms</th>
                   <th className="p-3">Budget</th>
                   <th className="p-3">Elevator</th>
                   <th className="p-3">Parking</th>
                   <th className="p-3">Area For Looking</th>
+                  <th className="p-3">Agent</th>
                   <th className="p-3">Status</th>
                   <th className="p-5">Edit</th>
                 </tr>
@@ -335,8 +364,8 @@ export default function TenantList() {
                 {filteredTenants.map((t) => (
                   <tr key={t.id} className="border-t hover:bg-gray-50">
                     <td className="p-3">{formatDate(t.Created)}</td>
-                    <td className="p-3">{t.Full_name}</td>
-                    <td className="p-3">{t.Phone_number}</td>
+                    <td className="p-3">{t.Full_name}<br></br>{t.Phone_number}</td>
+                    {/* <td className="p-2">{t.Phone_number}</td> */}
                     <td className="p-3">
                       {normalizeToArray(t.Number_of_Rooms).join(", ")}
                     </td>
@@ -346,6 +375,7 @@ export default function TenantList() {
                     <td className="p-3">{t.Elevator}</td>
                     <td className="p-3">{t.Parking}</td>
                     <td className="p-3">{t.In_which_area_are_you_looking}</td>
+                    <td className="p-3">{t.Assigned_Agent}</td>
                     <td className="p-3">
                       <Switch
                         checked={t.Status === "Active"}

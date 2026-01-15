@@ -511,9 +511,11 @@ export default function TenantDashboard() {
       const matchedCriteria: string[] = ["Area Match", "Within Budget"];
 
       /* ---------------- ROOMS (Core – 25%) ---------------- */
-      const isRoomMatch = tenantRooms.some(
-        (r) => r === rooms || r - 1 === rooms
-      );
+      const isRoomMatch = tenantRooms.some((tenantRoom) => {
+        const min = tenantRoom - 0.5;
+        const max = tenantRoom + 1;
+        return rooms >= min && rooms <= max;
+      });
       if (!isRoomMatch) return false; // ❌ reject property
 
       if (isRoomMatch) {
