@@ -344,11 +344,17 @@ export default function Dashboard() {
     return Math.max(...properties.map((p) => p.Asking_price || 0));
   }, [properties]);
 
+  const extractNumber = (value: string | number | undefined) => {
+  if (value === undefined || value === null) return 0;
+  const match = value.toString().match(/[\d.]+/); // matches digits and decimal point
+  return match ? parseFloat(match[0]) : 0;
+}
+
   // Apply sidebar filters
   const filteredProperties = useMemo(() => {
     if (!properties) return [];
     return properties.filter((p) => {
-      if (filters.bedrooms && (p.How_many_rooms || 0) < filters.bedrooms)
+      if (filters.bedrooms && (extractNumber(p.How_many_rooms) || 0) < filters.bedrooms)
         return false;
       if (filters.minRent && (p.Asking_price || 0) < filters.minRent)
         return false;
