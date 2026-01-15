@@ -404,8 +404,17 @@ export default function Dashboard() {
   const matches = useMemo(() => {
     if (!selectedProperty || !tenants) return [];
 
+     // Helper to extract numeric part from strings like "1 חדרים"
+    const extractNumber = (value: string | number | undefined) => {
+      if (value === undefined || value === null) return 0;
+      const match = value.toString().match(/[\d.]+/); // matches digits and decimal point
+      return match ? parseFloat(match[0]) : 0;
+    }
+
     const propertyPrice = Number(selectedProperty.Asking_price);
-    const propertyRooms = Number(selectedProperty.How_many_rooms);
+    // const propertyRooms = Number(selectedProperty.How_many_rooms);
+    const propertyRooms = extractNumber(selectedProperty.How_many_rooms);
+
 
     if (isNaN(propertyPrice) || isNaN(propertyRooms)) return [];
 

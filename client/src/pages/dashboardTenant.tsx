@@ -480,7 +480,14 @@ export default function TenantDashboard() {
 
     return properties.filter((p) => {
       const price = Number(p.Asking_price);
-      const rooms = Number(p.How_many_rooms);
+
+      const extractNumber = (value: string | number | undefined) => {
+        if (value === undefined || value === null) return 0;
+        const match = value.toString().match(/[\d.]+/); // matches digits and decimal point
+        return match ? parseFloat(match[0]) : 0;
+      }
+      const rooms = extractNumber(p.How_many_rooms);
+      // const rooms = Number(p.How_many_rooms);
 
       if (isNaN(price) || isNaN(rooms)) return false;
 
