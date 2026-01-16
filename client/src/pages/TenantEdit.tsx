@@ -110,7 +110,7 @@ export default function TenantEdit() {
     Do_you_want_us_to_talk_on_the_phone: "",
     Requirement_decription: "",
     Elevator: "", // 🔹 new
-    Parking: "", // 🔹 new
+    Parking_Importance: "", // 🔹 new
     Assigned_Agent: "", // 🔹 new
   });
 
@@ -120,6 +120,8 @@ export default function TenantEdit() {
     queryKey: ["tenant", id],
     queryFn: () => fetchTenantById(id!),
     enabled: !!id,
+    staleTime: 0, // ensures data is considered stale immediately
+    refetchOnWindowFocus: true, // optional: refetch if user switches tab
   });
 
   /* ---------------- PREFILL FORM ---------------- */
@@ -170,7 +172,7 @@ export default function TenantEdit() {
         Requirement_decription: data.Requirement_decription || "",
 
         Elevator: data.Elevator || "",
-        Parking: data.Parking || "",
+        Parking_Importance: data.Parking_Importance || "",
         Assigned_Agent: data.Assigned_Agent || "",
       });
     }
@@ -486,8 +488,8 @@ export default function TenantEdit() {
           <div>
             <label className="block text-sm font-medium mb-1">כמה חשובה לכם החניה?</label>
             <select
-              name="Parking"
-              value={form.Parking}
+              name="Parking_Importance"
+              value={form.Parking_Importance}
               onChange={handleChange}
               required
               className="w-full border p-2 rounded"
