@@ -6,11 +6,13 @@ interface StatsCardProps {
   value: number | string;
   icon: LucideIcon;
   description?: string;
+  onClick?: () => void;
+  className?: string;
 }
 
-export function StatsCard({ title, value, icon: Icon, description }: StatsCardProps) {
+export function StatsCard({ title, value, icon: Icon, description , onClick, className }: StatsCardProps) {
   return (
-    <Card data-testid={`card-stat-${title.toLowerCase().replace(/\s+/g, '-')}`}>
+    <Card data-testid={`card-stat-${title.toLowerCase().replace(/\s+/g, '-')}`}  onClick={onClick} className={`${className}`}>
       <CardContent className="p-6">
         <div className="flex items-center justify-between gap-4">
           <div>

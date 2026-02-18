@@ -114,6 +114,7 @@ export interface Tenant {
   Created?: string;
   Elevator?: string;
   Parking?: string;
+  Current_Status: string;
 
   [key: string]: any;
 }
@@ -149,5 +150,6 @@ export interface PropertyFilters {
   parking: "פרטית" | "אין" | "משותפת" | "עוקב" | "2 חניות" | null;
   balcony: "כן" | "לא" | null;
   availability: string;
+  Current_Status: string;
 }
 

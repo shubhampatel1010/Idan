@@ -12,7 +12,7 @@ import {
   Layers,
   Wind,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,6 +22,7 @@ import type { Property } from "@/lib/types";
 import { LoadingSpinner } from "@/components/loading";
 import { ErrorState } from "@/components/error-state";
 import { PropertyMap } from "@/pages/property-map";
+import { FaInstagram, FaTiktok } from "react-icons/fa";
 
 export default function PropertyUserView() {
   const params = useParams<{ id: string }>();
@@ -56,7 +57,7 @@ export default function PropertyUserView() {
               p.id !== property.id &&
               p.Asking_price !== undefined &&
               p.Asking_price >= minPrice &&
-              p.Asking_price <= maxPrice
+              p.Asking_price <= maxPrice,
           )
           .slice(0, 5); // top 5
       }),
@@ -94,6 +95,7 @@ export default function PropertyUserView() {
 
   function Carousel({ images }: CarouselProps) {
     const [current, setCurrent] = useState(0);
+    const [isOpen, setIsOpen] = useState(false);
 
     const prevSlide = () => {
       setCurrent((prev) => (prev === 0 ? images.length - 1 : prev - 1));
@@ -103,50 +105,154 @@ export default function PropertyUserView() {
       setCurrent((prev) => (prev === images.length - 1 ? 0 : prev + 1));
     };
 
+    const openModal = (index: number) => {
+      setCurrent(index);
+      setIsOpen(true);
+    };
+
+    const closeModal = () => {
+      setIsOpen(false);
+    };
+
+    // Close on ESC key
+    useEffect(() => {
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === "Escape") closeModal();
+        if (e.key === "ArrowRight") nextSlide();
+        if (e.key === "ArrowLeft") prevSlide();
+      };
+
+      if (isOpen) {
+        window.addEventListener("keydown", handleKeyDown);
+      }
+
+      return () => {
+        window.removeEventListener("keydown", handleKeyDown);
+      };
+    }, [isOpen]);
+
     if (!images || images.length === 0) return null;
 
     return (
-      <div className="relative w-full">
-        {/* Slides */}
-        <div className="relative w-full h-[500px] md:h-[600px] lg:h-[700px] overflow-hidden rounded">
-          {images.map((img, index) => (
+      <>
+        {/* ================= NORMAL CAROUSEL ================= */}
+        <div className="relative w-full">
+          <div className="relative w-full h-[400px] overflow-hidden rounded">
+            {images.map((img, index) => (
+              <div
+                key={index}
+                className={`absolute inset-0 transition-transform duration-500 ${
+                  index === current
+                    ? "translate-x-0 z-10"
+                    : "translate-x-full z-0"
+                }`}
+              >
+                <img
+                  src={img}
+                  alt={`Slide ${index + 1}`}
+                  className="w-full h-full object-cover cursor-pointer"
+                  onClick={() => openModal(index)}
+                />
+              </div>
+            ))}
+
+            {images.length > 1 && (
+              <>
+                <button
+                  className="absolute top-1/2 left-2 -translate-y-1/2 bg-black/50 text-white p-3 rounded-full hover:bg-black/70 z-20"
+                  onClick={prevSlide}
+                >
+                  &#10094;
+                </button>
+                <button
+                  className="absolute top-1/2 right-2 -translate-y-1/2 bg-black/50 text-white p-3 rounded-full hover:bg-black/70 z-20"
+                  onClick={nextSlide}
+                >
+                  &#10095;
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* ================= FULLSCREEN MODAL ================= */}
+        {isOpen && (
+          <div
+            className="fixed inset-0 bg-black/90 flex items-center justify-center z-[9999]"
+            onClick={closeModal}
+          >
             <div
-              key={index}
-              className={`absolute inset-0 transition-transform duration-500 ${
-                index === current
-                  ? "translate-x-0 z-10"
-                  : "translate-x-full z-0"
-              }`}
+              className="relative max-w-6xl w-full px-4"
+              onClick={(e) => e.stopPropagation()}
             >
               <img
-                src={img}
-                alt={`Slide ${index + 1}`}
-                className="w-full h-full object-cover"
+                src={images[current]}
+                alt="Full Preview"
+                className="w-full max-h-[90vh] object-contain rounded"
               />
-            </div>
-          ))}
 
-          {/* Controls inside slide container */}
-          {images.length > 1 && (
-            <>
+              {/* Close Button */}
               <button
-                className="absolute top-1/2 left-2 -translate-y-1/2 bg-black/50 text-white p-3 rounded-full hover:bg-black/70 z-20"
-                onClick={prevSlide}
+                className="absolute top-4 right-4 text-white text-3xl"
+                onClick={closeModal}
               >
-                &#10094;
+                ✕
               </button>
-              <button
-                className="absolute top-1/2 right-2 -translate-y-1/2 bg-black/50 text-white p-3 rounded-full hover:bg-black/70 z-20"
-                onClick={nextSlide}
-              >
-                &#10095;
-              </button>
-            </>
-          )}
-        </div>
-      </div>
+
+              {/* Navigation */}
+              {images.length > 1 && (
+                <>
+                  <button
+                    className="absolute top-1/2 left-4 -translate-y-1/2 text-white text-4xl"
+                    onClick={prevSlide}
+                  >
+                    &#10094;
+                  </button>
+
+                  <button
+                    className="absolute top-1/2 right-4 -translate-y-1/2 text-white text-4xl"
+                    onClick={nextSlide}
+                  >
+                    &#10095;
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+      </>
     );
   }
+
+  const InfoField = ({
+    label,
+    value,
+    isDate = false,
+    suffix = "",
+  }: {
+    label: string;
+    value: any;
+    isDate?: boolean;
+    suffix?: string;
+  }) => {
+    if (
+      value === null ||
+      value === undefined ||
+      value === "" ||
+      (Array.isArray(value) && value.length === 0)
+    ) {
+      return null; // ❌ Hide field completely
+    }
+
+    return (
+      <div>
+        <span className="text-sm text-muted-foreground">{label}</span>
+        <p className="font-medium">
+          {isDate ? formatDate(value) : formatValue(value)} {suffix}
+        </p>
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-background mt-10">
@@ -155,22 +261,7 @@ export default function PropertyUserView() {
           {" "}
           <div className="space-y-6">
             {/* Header */}
-            <div className="flex items-center gap-4">
-              {/* <Link to="/dashboard">
-                <Button variant="ghost" size="icon">
-                  <ArrowLeft className="h-5 w-5" />
-                </Button>
-              </Link> */}
-              {/* <div>
-                <h1 className="text-3xl font-bold">
-                  {property.Property_owner_name || "Unnamed Property"}
-                </h1>
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <MapPin className="h-4 w-4" />
-                  <span>{property.Property_Address || "Unknown location"}</span>
-                </div>
-              </div> */}
-            </div>
+            <div className="flex items-center gap-4"></div>
 
             {/* Images */}
             <Card className="overflow-hidden">
@@ -183,7 +274,7 @@ export default function PropertyUserView() {
               />
             </Card>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Left Column */}
               <div className="lg:col-span-2 space-y-6">
                 {/* General Info */}
@@ -191,477 +282,233 @@ export default function PropertyUserView() {
                   <CardHeader>
                     <CardTitle>מידע כללי</CardTitle>
                   </CardHeader>
-                  <CardContent className="grid grid-cols-2 gap-4">
-                    {/* <div>
-                      <span className="text-sm text-muted-foreground">
-                        מזהה הגשה
-                      </span>
-                      <p className="font-medium">
-                        {formatValue(property.Submission_ID)}
-                      </p>
-                    </div> */}
-                    <div>
-                      <span className="text-sm text-muted-foreground">
-                        תאריך פגישה
-                      </span>
-                      <p className="font-medium">
-                        {formatDate(property.Meeting_Date)}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="text-sm text-muted-foreground">
-                        סוֹכֵן
-                      </span>
-                      <p className="font-medium">
-                        {formatValue(property.Agent)}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="text-sm text-muted-foreground">
-                        מיקום מפגש
-                      </span>
-                      <p className="font-medium">
-                        {formatValue(property.Meeting_Location)}
-                      </p>
+                  <CardContent className="grid grid-cols-3 gap-4">
+                    <InfoField
+                      label="מחיר מבוקש"
+                      value={property.Asking_price}
+                    />
+                    <InfoField
+                      label="אזור בפועל"
+                      value={property.Actual_area}
+                      suffix="m²"
+                    />
+                    <InfoField label="חדרים" value={property.How_many_rooms} />
+                    <InfoField label="רחוב שקט" value={property.Quiet_street} />
+                    <InfoField
+                      label="קומות בבניין"
+                      value={property.How_many_floors_in_the_building}
+                    />
+                    <InfoField label="מַעֲלִית" value={property.Elevator} />
+                    <InfoField label="סוג חניה" value={property.Parking_Type} />
+                    <InfoField
+                      label="סוג מרפסת"
+                      value={property.Balcony_type}
+                    />
+                    <InfoField
+                      label="גודל מרפסת"
+                      value={property.Balcony_size}
+                    />
+                    <InfoField
+                      label="זָמִין"
+                      value={property.Is_the_apartment_available}
+                    />
+                    <InfoField
+                      label="תאריך כניסה"
+                      value={property.Entry_date}
+                      isDate
+                    />
+                    <InfoField
+                      label="תאריך פגישה"
+                      value={property.Meeting_Date}
+                      isDate
+                    />
+                    <InfoField label="סוֹכֵן" value={property.Agent} />
+                    <InfoField
+                      label="מיקום מפגש"
+                      value={property.Meeting_Location}
+                    />
+                    <div className="flex gap-4 mt-4">
+                      {property.Instagram_link && (
+                        <a
+                          href={property.Instagram_link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <FaInstagram size={28} />
+                        </a>
+                      )}
+
+                      {property.TikTok_link && (
+                        <a
+                          href={property.TikTok_link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <FaTiktok size={28} />
+                        </a>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
 
-                {/* Owner & Contact */}
-                {/* <Card>
-                  <CardHeader>
-                    <CardTitle>בעלים ויצירת קשר</CardTitle>
-                  </CardHeader>
-                  <CardContent className="grid grid-cols-2 gap-4">
-                    <div>
-                      <span className="text-sm text-muted-foreground">
-                        שם הבעלים
-                      </span>
-                      <p className="font-medium">
-                        {formatValue(property.Property_owner_name)}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="text-sm text-muted-foreground">
-                        טֵלֵפוֹן
-                      </span>
-                      <p className="font-medium">
-                        {formatValue(property.Phone_Number)}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="text-sm text-muted-foreground">
-                        אֶלֶקטרוֹנִי
-                      </span>
-                      <p className="font-medium">
-                        {formatValue(property.Email)}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="text-sm text-muted-foreground">
-                        עם מי יש לך עסק
-                      </span>
-                      <p className="font-medium">
-                        {formatValue(property.Who_are_you_dealing_with)}
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card> */}
-
                 {/* Property Specs */}
                 <Card>
-                  <CardHeader>
-                    <CardTitle>מפרט נכס</CardTitle>
-                  </CardHeader>
-                  <CardContent className="grid grid-cols-2 gap-4">
-                    <div>
-                      <span className="text-sm text-muted-foreground">
-                        כְּתוֹבֶת
-                      </span>
-                      <p className="font-medium">
-                        {formatValue(property.Property_Address)}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="text-sm text-muted-foreground">
-                        קוֹמָה
-                      </span>
-                      <p className="font-medium">
-                        {formatValue(property.Floor)}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="text-sm text-muted-foreground">
-                        קומות בבניין
-                      </span>
-                      <p className="font-medium">
-                        {formatValue(property.How_many_floors_in_the_building)}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="text-sm text-muted-foreground">
-                        דירות בבניין
-                      </span>
-                      <p className="font-medium">
-                        {formatValue(
-                          property.How_many_apartments_in_the_building
-                        )}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="text-sm text-muted-foreground">
-                        חדרים
-                      </span>
-                      <p className="font-medium">
-                        {formatValue(property.How_many_rooms)}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="text-sm text-muted-foreground">
-                        אזור בפועל
-                      </span>
-                      <p className="font-medium">
-                        {formatValue(property.Actual_area)} m²
-                      </p>
-                    </div>
-                    <div>
-                      <span className="text-sm text-muted-foreground">
-                        כיווני אוויר
-                      </span>
-                      <p className="font-medium">
-                        {formatValue(property.Air_directions)}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="text-sm text-muted-foreground">
-                        מַעֲלִית
-                      </span>
-                      <p className="font-medium">
-                        {formatValue(property.Elevator)}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="text-sm text-muted-foreground">
-                        סוג חניה
-                      </span>
-                      <p className="font-medium">
-                        {formatValue(property.Parking_Type)}
-                      </p>
-                    </div>
-                    {/* <div>
-                      <span className="text-sm text-muted-foreground">
-                        באיזה_אזור_הוא_הנכס
-                      </span>
-                      <p className="font-medium">
-                        {formatValue(property.In_which_area_is_the_property)}
-                      </p>
-                    </div> */}
-                  </CardContent>
+                  <details>
+                    <summary>
+                      <CardHeader>
+                        <CardTitle>מפרט נכס</CardTitle>
+                      </CardHeader>
+                    </summary>
+                    <CardContent className="grid grid-cols-2 gap-4">
+                      <InfoField label="קוֹמָה" value={property.Floor} />
+                      <InfoField
+                        label="דירות בבניין"
+                        value={property.How_many_apartments_in_the_building}
+                      />
+                      <InfoField
+                        label="כְּתוֹבֶת"
+                        value={property.Property_Address}
+                      />
+                      <InfoField
+                        label="כיווני אוויר"
+                        value={property.Air_directions}
+                      />
+                    </CardContent>
+                  </details>
                 </Card>
 
                 {/* Balcony & Storage */}
                 <Card>
-                  <CardHeader>
-                    <CardTitle>מרפסת ומחסן</CardTitle>
-                  </CardHeader>
-                  <CardContent className="grid grid-cols-2 gap-4">
-                    <div>
-                      <span className="text-sm text-muted-foreground">
-                        מִרפֶּסֶת
-                      </span>
-                      <p className="font-medium">
-                        {formatValue(property.Is_there_a_balcony)}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="text-sm text-muted-foreground">
-                        סוג מרפסת
-                      </span>
-                      <p className="font-medium">
-                        {formatValue(property.Balcony_type)}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="text-sm text-muted-foreground">
-                        גודל מרפסת
-                      </span>
-                      <p className="font-medium">
-                        {formatValue(property.Balcony_size)}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="text-sm text-muted-foreground">
-                        אִחסוּן
-                      </span>
-                      <p className="font-medium">
-                        {formatValue(property.Storage)}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="text-sm text-muted-foreground">
-                        רְהִיטִים
-                      </span>
-                      <p className="font-medium">
-                        {formatValue(property.Furniture)}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="text-sm text-muted-foreground">
-                        מיזוג אוויר
-                      </span>
-                      <p className="font-medium">
-                        {formatValue(property.Air_conditioning)}
-                      </p>
-                    </div>
-                  </CardContent>
+                  <details>
+                    <summary>
+                      <CardHeader>
+                        <CardTitle>מרפסת ומחסן</CardTitle>
+                      </CardHeader>
+                    </summary>
+                    <CardContent className="grid grid-cols-2 gap-4">
+                      <InfoField
+                        label="מִרפֶּסֶת"
+                        value={property.Is_there_a_balcony}
+                      />
+                      <InfoField label="אִחסוּן" value={property.Storage} />
+                      <InfoField label="מְרוּהָט" value={property.Furniture} />
+                      <InfoField
+                        label="מיזוג אוויר"
+                        value={property.Air_conditioning}
+                      />
+                    </CardContent>
+                  </details>
                 </Card>
 
                 {/* Availability & Status */}
                 <Card>
-                  <CardHeader>
-                    <CardTitle>זמינות ומצב</CardTitle>
-                  </CardHeader>
-                  <CardContent className="grid grid-cols-2 gap-4">
-                    <div>
-                      <span className="text-sm text-muted-foreground">
-                        זָמִין
-                      </span>
-                      <p className="font-medium">
-                        {formatValue(property.Is_the_apartment_available)}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="text-sm text-muted-foreground">
-                        תאריך כניסה
-                      </span>
-                      <p className="font-medium">
-                        {formatDate(property.Entry_date)}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="text-sm text-muted-foreground">
-                        חיבור גז
-                      </span>
-                      <p className="font-medium">
-                        {formatValue(property.Gas_connection)}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="text-sm text-muted-foreground">
-                        רחוב שקט
-                      </span>
-                      <p className="font-medium">
-                        {formatValue(property.Quiet_street)}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="text-sm text-muted-foreground">
-                        תמ"א מצורפת
-                      </span>
-                      <p className="font-medium">
-                        {formatValue(property.Is_TAMA_attached)}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="text-sm text-muted-foreground">
-                        תמ"א בתהליך
-                      </span>
-                      <p className="font-medium">
-                        {formatValue(
-                          property.Is_the_building_in_the_process_of_TAMA
-                        )}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="text-sm text-muted-foreground">
-                        תאריך TAMA צפוי
-                      </span>
-                      <p className="font-medium">
-                        {formatDate(property.When_is_the_TAMA_expected)}
-                      </p>
-                    </div>
-                  </CardContent>
+                  <details>
+                    <summary>
+                      {" "}
+                      <CardHeader>
+                        <CardTitle>זמינות ומצב</CardTitle>
+                      </CardHeader>
+                    </summary>
+                    <CardContent className="grid grid-cols-2 gap-4">
+                      <InfoField
+                        label="חיבור גז"
+                        value={property.Gas_connection}
+                      />
+                      <InfoField
+                        label="תמא מצורף"
+                        value={property.Is_TAMA_attached}
+                      />
+                      <InfoField
+                        label="תמא בתהליך"
+                        value={property.Is_the_building_in_the_process_of_TAMA}
+                      />
+                      <InfoField
+                        label="תאריך TAMA צפוי"
+                        value={property.When_is_the_TAMA_expected}
+                        isDate
+                      />
+                    </CardContent>
+                  </details>
                 </Card>
 
                 {/* Financial & Contract */}
                 <Card>
-                  <CardHeader>
-                    <CardTitle>פיננסי וחוזה</CardTitle>
-                  </CardHeader>
-                  <CardContent className="grid grid-cols-2 gap-4">
-                    <div>
-                      <span className="text-sm text-muted-foreground">
-                        מחיר השכירות אחרון
-                      </span>
-                      <p className="font-medium">
-                        {formatValue(property.Last_rental_price)}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="text-sm text-muted-foreground">
-                        וַעֲדָה
-                      </span>
-                      <p className="font-medium">
-                        {formatValue(property.Committee_of_the_House)}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="text-sm text-muted-foreground">
-                        מיסים דו-חודשיים
-                      </span>
-                      <p className="font-medium">
-                        {formatValue(property.Bi_monthly_municipal_taxes)}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="text-sm text-muted-foreground">
-                        תקופת תשלום
-                      </span>
-                      <p className="font-medium">
-                        {formatValue(property.Payment_term)}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="text-sm text-muted-foreground">
-                        ערבות בנקאית
-                      </span>
-                      <p className="font-medium">
-                        {formatValue(property.A_bank_guarantee)}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="text-sm text-muted-foreground">
-                        הערת אבטחה
-                      </span>
-                      <p className="font-medium">
-                        {formatValue(property.A_security_note_for_the_sum)}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="text-sm text-muted-foreground">
-                        ערבים
-                      </span>
-                      <p className="font-medium">
-                        {formatValue(property.Guarantors_to_the_contract)}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="text-sm text-muted-foreground">
-                        תקופת החוזה
-                      </span>
-                      <p className="font-medium">
-                        {formatValue(property.Contract_term)}
-                      </p>
-                    </div>
-                  </CardContent>
+                  <details>
+                    <summary>
+                      <CardHeader>
+                        <CardTitle>פיננסי וחוזה</CardTitle>
+                      </CardHeader>
+                    </summary>
+                    <CardContent className="grid grid-cols-2 gap-4">
+                      <InfoField
+                        label="מחיר השכירות אחרון"
+                        value={property.Last_rental_price}
+                      />
+                      <InfoField
+                        label="וַעֲדָה"
+                        value={property.Committee_of_the_House}
+                      />
+                      <InfoField
+                        label="מיסים דו-חודשיים"
+                        value={property.Bi_monthly_municipal_taxes}
+                      />
+                      <InfoField
+                        label="תקופת תשלום"
+                        value={property.Payment_term}
+                      />
+                      <InfoField
+                        label="ערבות בנקאית"
+                        value={property.A_bank_guarantee}
+                      />
+                      <InfoField
+                        label="הערת אבטחה"
+                        value={property.A_security_note_for_the_sum}
+                      />
+                      <InfoField
+                        label="ערבים"
+                        value={property.Guarantors_to_the_contract}
+                      />
+                      <InfoField
+                        label="תקופת החוזה"
+                        value={property.Contract_term}
+                      />
+                    </CardContent>
+                  </details>
                 </Card>
 
                 {/* Comments & Price */}
                 <Card>
-                  <CardHeader>
-                    <CardTitle>הערות ומחיר</CardTitle>
-                  </CardHeader>
-                  <CardContent className="grid grid-cols-2 gap-4">
-                    <div>
-                      <span className="text-sm text-muted-foreground">
-                        בעלים שוקל למכור
-                      </span>
-                      <p className="font-medium">
-                        {formatValue(
+                  <details>
+                    <summary>
+                      <CardHeader>
+                        <CardTitle>הערות ומחיר</CardTitle>
+                      </CardHeader>
+                    </summary>
+                    <CardContent className="grid grid-cols-2 gap-4">
+                      <InfoField
+                        label="בעלים שוקל למכור"
+                        value={
                           property.Is_the_owner_considering_selling_the_apartment
-                        )}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="text-sm text-muted-foreground">
-                        ליקויים ותיקונים
-                      </span>
-                      <p className="font-medium">
-                        {formatValue(
-                          property.Defects_and_repairs_to_be_carried_out
-                        )}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="text-sm text-muted-foreground">
-                        הערות כלליות
-                      </span>
-                      <p className="font-medium">
-                        {formatValue(property.General_comments)}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="text-sm text-muted-foreground">
-                        מחיר מומלץ
-                      </span>
-                      <p className="font-medium">
-                        {formatValue(property.Recommended_price)}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="text-sm text-muted-foreground">
-                        מחיר מבוקש
-                      </span>
-                      <p className="font-medium">
-                        {formatValue(property.Asking_price)}
-                      </p>
-                    </div>
-                  </CardContent>
+                        }
+                      />
+
+                      <InfoField
+                        label="ליקויים ותיקונים"
+                        value={property.Defects_and_repairs_to_be_carried_out}
+                      />
+
+                      <InfoField
+                        label="הערות כלליות"
+                        value={property.General_comments}
+                      />
+
+                      <InfoField
+                        label="מחיר מומלץ"
+                        value={property.Recommended_price}
+                      />
+                    </CardContent>
+                  </details>
                 </Card>
-              </div>
-
-              {/* Right Column: Key Features */}
-              <div className="space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>תכונות מפתח</CardTitle>
-                  </CardHeader>
-
-                  <CardContent className="grid grid-cols-1 gap-3">
-                    <div className="grid grid-cols-[24px_1fr] items-center gap-3">
-                      <Sofa className="h-5 w-5 text-muted-foreground" />
-                      <span>
-                        <b>מְרוּהָט</b>: {formatValue(property.Furniture)}
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-[24px_1fr] items-center gap-3">
-                      <Car className="h-5 w-5 text-muted-foreground" />
-                      <span>
-                        <b>סוג חניה</b>: {formatValue(property.Parking_Type)}
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-[24px_1fr] items-center gap-3">
-                      <Wind className="h-5 w-5 text-muted-foreground" />
-                      <span>
-                        <b>מיזוג אוויר</b>:{" "}
-                        {formatValue(property.Air_conditioning)}
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-[24px_1fr] items-center gap-3">
-                      <Layers className="h-5 w-5 text-muted-foreground" />
-                      <span>
-                        <b>מִרפֶּסֶת</b>:{" "}
-                        {formatValue(property.Is_there_a_balcony)}
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-[24px_1fr] items-center gap-3">
-                      <Building className="h-5 w-5 text-muted-foreground" />
-                      <span>
-                        <b>מַעֲלִית</b>: {formatValue(property.Elevator)}
-                      </span>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* <PropertyMap
-                  latitude={property.Latitude}
-                  longitude={property.Longitude}
-                  address={property.Property_Address}
-                /> */}
               </div>
             </div>
 
@@ -669,9 +516,14 @@ export default function PropertyUserView() {
             {/* Similar Properties */}
             {property && (
               <Card className="mt-6">
-                <CardHeader>
-                  <CardTitle>מאפיינים דומים</CardTitle>
-                </CardHeader>
+                <details>
+                  <summary>
+                    <CardHeader>
+                      <CardTitle>מאפיינים דומים</CardTitle>
+                    </CardHeader>
+                  </summary>
+                </details>
+
                 <CardContent className="space-y-4">
                   {similarLoading && <LoadingSpinner />}
                   {similarError && (
@@ -693,7 +545,8 @@ export default function PropertyUserView() {
                         />
                         <CardHeader>
                           <CardTitle>
-                             <MapPin className="inline mr-1" />{" "}{p.In_which_area_is_the_property || "Unnamed Area"}
+                            <MapPin className="inline mr-1" />{" "}
+                            {p.In_which_area_is_the_property || "Unnamed Area"}
                           </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-1">

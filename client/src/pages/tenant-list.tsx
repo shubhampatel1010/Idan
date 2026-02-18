@@ -1,11 +1,11 @@
 import { useState, useMemo, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Edit, Users,Trash2  } from "lucide-react";
+import { Edit, Users, Trash2, Phone } from "lucide-react";
 import { Layout } from "@/components/layout";
-import { fetchTenants, updateTenantStatus ,deleteTenant  } from "@/lib/airtable";
+import { fetchTenants, updateTenantStatus, deleteTenant } from "@/lib/airtable";
 import type { Tenant } from "@/lib/types";
 import { useNavigate } from "react-router-dom";
-import { Switch } from "@headlessui/react";
+import { Button, Switch } from "@headlessui/react";
 
 /* ================= CONSTANT ================= */
 
@@ -59,6 +59,59 @@ export default function TenantList() {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [agent, setAgent] = useState("");
+  const [Current_Status, setCurrent_Status] = useState("all");
+  const [openChatId, setOpenChatId] = useState<string | null>(null);
+  const [chatMessage, setChatMessage] = useState("");
+  const [sending, setSending] = useState(false);
+
+  /* -------------------- Helpers -------------------- */
+const getLoggedInAgentName = () => {
+  try {
+    const user = JSON.parse(localStorage.getItem("userData") || "{}");
+    return user?.Name || "Unknown Agent";
+  } catch {
+    return "Unknown Agent";
+  }
+};
+
+  const WEBHOOK_URL = "https://your-webhook-url.com"; // 👈 change
+
+  const handleSendChat = async (tenant: Tenant) => {
+    if (!chatMessage.trim()) {
+      alert("Enter message");
+      return;
+    }
+
+    setSending(true);
+
+    try {
+      console.log("Sending webhook...");
+
+      await fetch(WEBHOOK_URL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          recordId: tenant.id,
+          phone: tenant.Phone_number,
+          message: chatMessage,
+          agentName: getLoggedInAgentName(),
+        }),
+      });
+
+      console.log("Webhook sent ✅");
+
+      setChatMessage("");
+      setOpenChatId(null);
+    } catch (err) {
+      console.error("Webhook error:", err);
+      alert("Failed to send");
+    } finally {
+      setSending(false);
+    }
+  };
 
   /* ---------- LOAD FILTERS FROM STORAGE ---------- */
 
@@ -75,6 +128,7 @@ export default function TenantList() {
     setDateFrom(f.dateFrom ?? "");
     setDateTo(f.dateTo ?? "");
     setAgent(f.agent ?? "");
+    setCurrent_Status(f.Current_Status ?? "all");
   }, []);
 
   /* ---------- SAVE FILTERS ---------- */
@@ -91,9 +145,20 @@ export default function TenantList() {
         dateFrom,
         dateTo,
         agent,
-      })
+        Current_Status,
+      }),
     );
-  }, [status, minBudget, maxBudget, rooms, nameSearch, dateFrom, dateTo, agent]);
+  }, [
+    status,
+    minBudget,
+    maxBudget,
+    rooms,
+    nameSearch,
+    dateFrom,
+    dateTo,
+    agent,
+    Current_Status,
+  ]);
 
   /* ---------- DATA ---------- */
 
@@ -125,62 +190,70 @@ export default function TenantList() {
   /* ---------- FILTER LOGIC ---------- */
 
   const filteredTenants = useMemo(() => {
-    return tenants.filter((t) => {
-      /* Name filter */
-      if (
-        nameSearch &&
-        !t.Full_name?.toLowerCase().includes(nameSearch.toLowerCase())
-      ) {
-        return false;
-      }
+    return (
+      tenants
+        .filter((t) => {
+          /* Name filter */
+          if (
+            nameSearch &&
+            !t.Full_name?.toLowerCase().includes(nameSearch.toLowerCase())
+          ) {
+            return false;
+          }
 
-      /* Status filter */
-      if (status !== "all" && t.Status !== status) {
-        return false;
-      }
+          /* Status filter */
+          if (status !== "all" && t.Status !== status) {
+            return false;
+          }
 
-      /* Budget filter */
-      const budgets = extractBudgets(t.Current_budget);
-      if (budgets.length) {
-        const match = budgets.some((b) => b >= minBudget && b <= maxBudget);
-        if (!match) return false;
-      }
+          /* Current Status filter */
+          if (Current_Status !== "all" && t.Current_Status !== Current_Status) {
+            return false;
+          }
 
-      /* Rooms filter */
-      const roomValues = extractRooms(t.Number_of_Rooms);
-      if (rooms > 0 && roomValues.length && !roomValues.includes(rooms)) {
-        return false;
-      }
+          /* Budget filter */
+          const budgets = extractBudgets(t.Current_budget);
+          if (budgets.length) {
+            const match = budgets.some((b) => b >= minBudget && b <= maxBudget);
+            if (!match) return false;
+          }
 
-      /* Date filter */
-      if (dateFrom) {
-        if (!t.Created || new Date(t.Created) < new Date(dateFrom)) {
-          return false;
-        }
-      }
+          /* Rooms filter */
+          const roomValues = extractRooms(t.Number_of_Rooms);
+          if (rooms > 0 && roomValues.length && !roomValues.includes(rooms)) {
+            return false;
+          }
 
-      if (dateTo) {
-        const end = new Date(dateTo);
-        end.setHours(23, 59, 59, 999);
-        if (!t.Created || new Date(t.Created) > end) {
-          return false;
-        }
-      }
-      /* Agent filter */
-      if (agent) {
-        if (t.Assigned_Agent !== agent) {
-          return false;
-        }
-      }
+          /* Date filter */
+          if (dateFrom) {
+            if (!t.Created || new Date(t.Created) < new Date(dateFrom)) {
+              return false;
+            }
+          }
 
-      return true;
-    })
-    /* ✅ SORT BY CREATED DATE DESC (LATEST FIRST) */
-    .sort((a, b) => {
-      const dateA = a.Created ? new Date(a.Created).getTime() : 0;
-      const dateB = b.Created ? new Date(b.Created).getTime() : 0;
-      return dateB - dateA;
-    });
+          if (dateTo) {
+            const end = new Date(dateTo);
+            end.setHours(23, 59, 59, 999);
+            if (!t.Created || new Date(t.Created) > end) {
+              return false;
+            }
+          }
+          /* Agent filter */
+          if (agent) {
+            if (t.Assigned_Agent !== agent) {
+              return false;
+            }
+          }
+
+          return true;
+        })
+        /* ✅ SORT BY CREATED DATE DESC (LATEST FIRST) */
+        .sort((a, b) => {
+          const dateA = a.Created ? new Date(a.Created).getTime() : 0;
+          const dateB = b.Created ? new Date(b.Created).getTime() : 0;
+          return dateB - dateA;
+        })
+    );
   }, [
     tenants,
     status,
@@ -191,6 +264,7 @@ export default function TenantList() {
     dateFrom,
     dateTo,
     agent,
+    Current_Status,
   ]);
 
   /* ---------- STATUS TOGGLE ---------- */
@@ -200,13 +274,12 @@ export default function TenantList() {
     await updateTenantStatus(tenant.id, newStatus);
 
     queryClient.setQueryData<Tenant[]>(["tenants"], (old = []) =>
-      old.map((t) => (t.id === tenant.id ? { ...t, Status: newStatus } : t))
+      old.map((t) => (t.id === tenant.id ? { ...t, Status: newStatus } : t)),
     );
   };
 
   /* ================= UI ================= */
 
-  
   /* ---------- DELETE TENANT ---------- */
   const handleDeleteTenant = async (tenantId: string) => {
     if (!confirm("Are you sure you want to delete this tenant?")) return;
@@ -215,7 +288,7 @@ export default function TenantList() {
       setDeletingId(tenantId);
       await deleteTenant(tenantId); // <- your API call to delete tenant
       queryClient.setQueryData<Tenant[]>(["tenants"], (old = []) =>
-        old.filter((t) => t.id !== tenantId)
+        old.filter((t) => t.id !== tenantId),
       );
     } catch (error) {
       console.error("Failed to delete tenant:", error);
@@ -231,15 +304,15 @@ export default function TenantList() {
         {/* ================= FILTERS ================= */}
         <aside className="w-full lg:w-64 bg-white p-4 rounded shadow space-y-4">
           <h2 className="font-semibold text-lg">Filters</h2>
-            <label className="block text-sm mb-1">חפש לפי שם</label>
+          <label className="block text-sm mb-1">חפש לפי שם</label>
           <input
             value={nameSearch}
             onChange={(e) => setNameSearch(e.target.value)}
             placeholder="Search by name"
             className="w-full border p-2 rounded"
           />
-            <label className="block text-sm mb-1">סטטוס דייר</label>
-  
+          <label className="block text-sm mb-1">סטטוס דייר</label>
+
           <select
             value={status}
             onChange={(e) => setStatus(e.target.value as any)}
@@ -249,9 +322,9 @@ export default function TenantList() {
             <option value="Active">Active</option>
             <option value="Inactive">Inactive</option>
           </select>
-          
-            <label className="block text-sm mb-1">תַקצִיב(₪)</label>
-  
+
+          <label className="block text-sm mb-1">תַקצִיב(₪)</label>
+
           <div className="flex gap-2">
             <input
               type="number"
@@ -268,8 +341,8 @@ export default function TenantList() {
               className="w-1/2 border p-2 rounded"
             />
           </div>
-            <label className="block text-sm mb-1">חדרי שינה</label>
-  
+          <label className="block text-sm mb-1">חדרי שינה</label>
+
           <input
             type="number"
             value={rooms}
@@ -297,22 +370,35 @@ export default function TenantList() {
               className="w-full border p-2 rounded"
             />
           </div>
-          <label className="block text-sm font-medium mb-1">
-              סוכן מוקצה?
-            </label>
+          <div>
+            <label className="block mb-1 text-sm font-medium">סטטוס דייר</label>
             <select
-              name="Assigned_Agent"
-              value={agent}
-              onChange={(e) => setAgent(e.target.value as any)}
+              value={Current_Status}
+              onChange={(e) => setCurrent_Status(e.target.value)}
               className="w-full border p-2 rounded"
-              required
             >
-              <option value="">כֹּל</option>
-              <option value="עידן">עידן</option>
-              <option value="גלעד">גלעד</option>
-              <option value="איתמר">איתמר</option>
-              <option value="יונתן">יונתן</option>
+              <option value="all">All</option>
+              <option value="חָדָשׁ">חָדָשׁ</option>
+              <option value="מוּצָע">מוּצָע</option>
+              <option value="נִקרָא">נִקרָא</option>
+              <option value="מְתוּאָם">מְתוּאָם</option>
+              <option value="לא רלוונטי">לא רלוונטי</option>
             </select>
+          </div>
+          <label className="block text-sm font-medium mb-1">סוכן מוקצה?</label>
+          <select
+            name="Assigned_Agent"
+            value={agent}
+            onChange={(e) => setAgent(e.target.value as any)}
+            className="w-full border p-2 rounded"
+            required
+          >
+            <option value="">כֹּל</option>
+            <option value="עידן">עידן</option>
+            <option value="גלעד">גלעד</option>
+            <option value="איתמר">איתמר</option>
+            <option value="יונתן">יונתן</option>
+          </select>
 
           <button
             onClick={() => {
@@ -324,6 +410,7 @@ export default function TenantList() {
               setDateFrom("");
               setDateTo("");
               setAgent("");
+              setCurrent_Status("all");
               localStorage.removeItem(FILTER_KEY);
             }}
             className="w-full bg-blue-600 text-white p-2 rounded"
@@ -363,8 +450,82 @@ export default function TenantList() {
               <tbody>
                 {filteredTenants.map((t) => (
                   <tr key={t.id} className="border-t hover:bg-gray-50">
-                    <td className="p-3">{formatDate(t.Created)}</td>
-                    <td className="p-3">{t.Full_name}<br></br>{t.Phone_number}</td>
+                    <td className="p-3">
+                      <b>
+                        <span
+                          className={`font-medium ${
+                            t.Current_Status === "חָדָשׁ"
+                              ? "text-blue-600"
+                              : t.Current_Status === "מוּצָע"
+                                ? "text-yellow-600"
+                                : t.Current_Status === "נִקרָא"
+                                  ? "text-purple-600"
+                                  : t.Current_Status === "מְתוּאָם"
+                                    ? "text-green-600"
+                                    : t.Current_Status === "לא רלוונטי"
+                                      ? "text-red-600"
+                                      : "text-gray-600"
+                          }`}
+                        >
+                          {t.Current_Status}
+                        </span>
+                      </b>
+                      <br></br>
+                      {formatDate(t.Created)}
+                    </td>
+                    <td className="p-3">
+                      {t.Full_name}
+                      <br></br>
+                      <div className="relative inline-block">
+                        {/* PHONE NUMBER (click target) */}
+                        <p
+                          onClick={() =>
+                            setOpenChatId(openChatId === t.id ? null : t.id)
+                          }
+                          className="text-xs flex items-center gap-1 mt-1 cursor-pointer text-blue-600 hover:underline"
+                        >
+                          <Phone size={12} /> {t.Phone_number}
+                        </p>
+
+                        {/* CHAT POPUP */}
+                        {openChatId === t.id && (
+                          <div className="absolute top-full mb-2 left-0 z-50 w-64 bg-white dark:bg-slate-900 border rounded-lg shadow-xl p-3 space-y-2">
+                            <div className="flex justify-between items-center">
+                              <span className="text-xs font-semibold">
+                                Send Message On WhatsApp
+                              </span>
+                              <button
+                                onClick={() => {
+                                  setOpenChatId(null);
+                                  setChatMessage(""); // ⭐ clear message
+                                }}
+
+                                className="text-xs text-gray-500 hover:text-red-500"
+                              >
+                                ✕
+                              </button>
+                            </div>
+
+                            <textarea
+                              rows={3}
+                              value={chatMessage}
+                              onChange={(e) => setChatMessage(e.target.value)}
+                              placeholder="Type message..."
+                              className="w-full text-xs border rounded p-2 resize-none focus:outline-none focus:ring"
+                            />
+
+                            <button
+                              type="button"
+                              onClick={() => handleSendChat(t)}
+                              disabled={sending}
+                              className="bg-blue-600 text-white px-3 py-1 rounded"
+                            >
+                              Send
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </td>
                     {/* <td className="p-2">{t.Phone_number}</td> */}
                     <td className="p-3">
                       {normalizeToArray(t.Number_of_Rooms).join(", ")}

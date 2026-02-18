@@ -199,6 +199,7 @@ export const updateTenantAgent = async (
       body: JSON.stringify({
         fields: {
           Agent_Name: agentName, // 🔴 Airtable column name
+          Current_Status: "מוּצָע", // 🔴 Airtable column name
         },
       }),
     }

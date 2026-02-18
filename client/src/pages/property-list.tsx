@@ -1,14 +1,14 @@
 // PropertyList.tsx
-import { useState, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Building2 } from 'lucide-react';
-import { Layout } from '@/components/layout';
-import { PropertyCard } from '@/components/property-card';
-import { PropertyCardSkeleton } from '@/components/loading';
-import { ErrorState } from '@/components/error-state';
-import { EmptyState } from '@/components/empty-state';
-import { fetchProperties } from '@/lib/airtable';
-import type { Property, PropertyFilters } from '@/lib/types';
+import { useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Building2 } from "lucide-react";
+import { Layout } from "@/components/layout";
+import { PropertyCard } from "@/components/property-card";
+import { PropertyCardSkeleton } from "@/components/loading";
+import { ErrorState } from "@/components/error-state";
+import { EmptyState } from "@/components/empty-state";
+import { fetchProperties } from "@/lib/airtable";
+import type { Property, PropertyFilters } from "@/lib/types";
 
 export default function PropertyList() {
   const [filters, setFilters] = useState<PropertyFilters>({
@@ -18,11 +18,18 @@ export default function PropertyList() {
     elevator: null,
     parking: null,
     balcony: null,
-    availability: 'all',
+    availability: "all",
   });
 
-  const { data: properties, isLoading, error, refetch } = useQuery<Property[]>({
-    queryKey: ['/api/properties'],
+  const [searchAddress, setSearchAddress] = useState("");
+
+  const {
+    data: properties,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery<Property[]>({
+    queryKey: ["/api/properties"],
     queryFn: fetchProperties,
     refetchOnWindowFocus: true,
   });
@@ -36,21 +43,36 @@ export default function PropertyList() {
   const filteredProperties = useMemo(() => {
     if (!properties) return [];
     return properties.filter((p) => {
-      if (filters.bedrooms && (p.How_many_rooms ?? 0) < filters.bedrooms) return false;
-      if (filters.minRent && (p.Asking_price ?? 0) < filters.minRent) return false;
-      if (filters.maxRent && (p.Asking_price ?? 0) > filters.maxRent) return false;
-       // מעלית
+      // ✅ ADDRESS SEARCH FILTER
+      if (
+        searchAddress &&
+        !p.Property_Address?.toLowerCase().includes(searchAddress.toLowerCase())
+      ) {
+        return false;
+      }
+      if (filters.bedrooms && (p.How_many_rooms ?? 0) < filters.bedrooms)
+        return false;
+      if (filters.minRent && (p.Asking_price ?? 0) < filters.minRent)
+        return false;
+      if (filters.maxRent && (p.Asking_price ?? 0) > filters.maxRent)
+        return false;
+      // מעלית
       if (filters.elevator && p.Elevator !== filters.elevator) return false;
 
       // חניה
       if (filters.parking && p.Parking !== filters.parking) return false;
 
       // מרפסת
-      if (filters.balcony && p.Is_there_a_balcony !== filters.balcony) return false;
-      if (filters.availability !== 'all' && p.Is_the_apartment_available !== filters.availability) return false;
+      if (filters.balcony && p.Is_there_a_balcony !== filters.balcony)
+        return false;
+      if (
+        filters.availability !== "all" &&
+        p.Is_the_apartment_available !== filters.availability
+      )
+        return false;
       return true;
     });
-  }, [properties, filters]);
+  }, [properties, filters, searchAddress]);
 
   if (error) {
     return (
@@ -69,6 +91,18 @@ export default function PropertyList() {
         {/* Sidebar Filters */}
         <aside className="w-full lg:w-1/4 space-y-6 p-4 bg-white rounded shadow">
           <h2 className="text-xl font-semibold mb-4">Filters</h2>
+          <div>
+            <label className="block mb-1 text-sm font-medium">
+              חפש לפי כתובת
+            </label>
+            <input
+              type="text"
+              value={searchAddress}
+              onChange={(e) => setSearchAddress(e.target.value)}
+              placeholder="Enter property address..."
+              className="w-full border p-2 rounded"
+            />
+          </div>
 
           {/* Bedrooms */}
           <div>
@@ -77,7 +111,9 @@ export default function PropertyList() {
               type="number"
               min={0}
               value={filters.bedrooms}
-              onChange={(e) => setFilters({ ...filters, bedrooms: Number(e.target.value) })}
+              onChange={(e) =>
+                setFilters({ ...filters, bedrooms: Number(e.target.value) })
+              }
               className="w-full border p-2 rounded"
             />
           </div>
@@ -90,7 +126,9 @@ export default function PropertyList() {
                 type="number"
                 min={0}
                 value={filters.minRent}
-                onChange={(e) => setFilters({ ...filters, minRent: Number(e.target.value) })}
+                onChange={(e) =>
+                  setFilters({ ...filters, minRent: Number(e.target.value) })
+                }
                 className="w-1/2 border p-2 rounded"
                 placeholder="Min"
               />
@@ -98,7 +136,9 @@ export default function PropertyList() {
                 type="number"
                 min={0}
                 value={filters.maxRent}
-                onChange={(e) => setFilters({ ...filters, maxRent: Number(e.target.value) })}
+                onChange={(e) =>
+                  setFilters({ ...filters, maxRent: Number(e.target.value) })
+                }
                 className="w-1/2 border p-2 rounded"
                 placeholder="Max"
               />
@@ -106,82 +146,84 @@ export default function PropertyList() {
           </div>
 
           <div>
-              <label className="block mb-1 text-sm font-medium">מַעֲלִית</label>
-              <select
-                value={filters.elevator ?? "all"}
-                onChange={(e) =>
-                  setFilters({
-                    ...filters,
-                    elevator: e.target.value === "all" ? null : e.target.value,
-                  })
-                }
-                className="w-full border p-2 rounded"
-              >
-                <option value="all">הכל</option>
-                <option value="כן">כן</option>
-                <option value="לא">לא</option>
-                <option value="חצי קומה">חצי קומה</option>
-              </select>
-            </div>
+            <label className="block mb-1 text-sm font-medium">מַעֲלִית</label>
+            <select
+              value={filters.elevator ?? "all"}
+              onChange={(e) =>
+                setFilters({
+                  ...filters,
+                  elevator: e.target.value === "all" ? null : e.target.value,
+                })
+              }
+              className="w-full border p-2 rounded"
+            >
+              <option value="all">הכל</option>
+              <option value="כן">כן</option>
+              <option value="לא">לא</option>
+              <option value="חצי קומה">חצי קומה</option>
+            </select>
+          </div>
 
-            <div>
-              <label className="block mb-1 text-sm font-medium">חֲנָיָה</label>
-              <select
-                value={filters.parking ?? "all"}
-                onChange={(e) =>
-                  setFilters({
-                    ...filters,
-                    parking: e.target.value === "all" ? null : e.target.value,
-                  })
-                }
-                className="w-full border p-2 rounded"
-              >
-                <option value="all">הכל</option>
-                <option value="פרטי">פרטי</option>
-                <option value="אין">אין</option>
-                <option value="משותף">משותף</option>
-                <option value="עוקב">עוקב</option>
-                <option value="2 חניות">2 חניות</option>
-              </select>
-            </div>
+          <div>
+            <label className="block mb-1 text-sm font-medium">חֲנָיָה</label>
+            <select
+              value={filters.parking ?? "all"}
+              onChange={(e) =>
+                setFilters({
+                  ...filters,
+                  parking: e.target.value === "all" ? null : e.target.value,
+                })
+              }
+              className="w-full border p-2 rounded"
+            >
+              <option value="all">הכל</option>
+              <option value="פרטי">פרטי</option>
+              <option value="אין">אין</option>
+              <option value="משותף">משותף</option>
+              <option value="עוקב">עוקב</option>
+              <option value="2 חניות">2 חניות</option>
+            </select>
+          </div>
 
-            <div>
-              <label className="block mb-1 text-sm font-medium">מִרפֶּסֶת</label>
-              <select
-                value={filters.balcony ?? "all"}
-                onChange={(e) =>
-                  setFilters({
-                    ...filters,
-                    balcony: e.target.value === "all" ? null : e.target.value,
-                  })
-                }
-                className="w-full border p-2 rounded"
-              >
-                <option value="all">הכל</option>
-                <option value="כן">כן</option>
-                <option value="לא">לא</option>
-              </select>
-            </div>
+          <div>
+            <label className="block mb-1 text-sm font-medium">מִרפֶּסֶת</label>
+            <select
+              value={filters.balcony ?? "all"}
+              onChange={(e) =>
+                setFilters({
+                  ...filters,
+                  balcony: e.target.value === "all" ? null : e.target.value,
+                })
+              }
+              className="w-full border p-2 rounded"
+            >
+              <option value="all">הכל</option>
+              <option value="כן">כן</option>
+              <option value="לא">לא</option>
+            </select>
+          </div>
 
           {/* Availability */}
           <div>
             <label className="block mb-1 font-medium">זְמִינוּת</label>
             <select
               value={filters.availability}
-              onChange={(e) => setFilters({ ...filters, availability: e.target.value })}
+              onChange={(e) =>
+                setFilters({ ...filters, availability: e.target.value })
+              }
               className="w-full border p-2 rounded"
             >
               <option value="all">All</option>
               <option value="Available">Available</option>
               <option value="Rented">Rented</option>
               <option value="NA">NA</option>
-
             </select>
           </div>
 
           {/* Reset Button */}
           <button
             onClick={() =>
+              setSearchAddress("") ||
               setFilters({
                 minRent: 0,
                 maxRent: maxRent || 50000,
@@ -189,7 +231,7 @@ export default function PropertyList() {
                 elevator: null,
                 parking: null,
                 balcony: null,
-                availability: 'all',
+                availability: "all",
               })
             }
             className="w-full bg-blue-600 text-white p-2 rounded mt-4 hover:bg-blue-700 transition"
@@ -203,7 +245,7 @@ export default function PropertyList() {
           <div className="flex items-center justify-between mb-4">
             <p className="text-muted-foreground">
               {isLoading
-                ? 'Loading properties...'
+                ? "Loading properties..."
                 : `Showing ${filteredProperties.length} of ${properties?.length ?? 0} properties`}
             </p>
           </div>
@@ -221,7 +263,7 @@ export default function PropertyList() {
               title="No properties found"
               description="Try adjusting your filters to see more results."
               action={{
-                label: 'Clear Filters',
+                label: "Clear Filters",
                 onClick: () =>
                   setFilters({
                     minRent: 0,
@@ -230,7 +272,7 @@ export default function PropertyList() {
                     elevator: null,
                     parking: null,
                     balcony: null,
-                    availability: 'all',
+                    availability: "all",
                   }),
               }}
             />

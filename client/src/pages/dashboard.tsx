@@ -41,6 +41,7 @@ import type {
 } from "@/lib/types";
 import { Link } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 
 /* -------------------- Helpers -------------------- */
 
@@ -69,14 +70,14 @@ function PropertyListItem({
   return (
     <Card
       onClick={onSelect}
-      className={`cursor-pointer border transition-shadow ${
+      className={`w-full max-w-full overflow-hidden cursor-pointer border transition-shadow ${
         isSelected
           ? "border-slate-400 bg-slate-50 dark:bg-slate-900"
           : "hover:shadow-sm"
       }`}
     >
-      <CardContent className="p-4 space-y-2">
-        <div className="flex justify-between items-start">
+      <CardContent className="p-4 space-y-3 w-full overflow-hidden">
+        <div className="flex flex-wrap justify-between items-start gap-2">
           <h3 className="font-medium text-sm truncate">
             {property.Property_Address}
           </h3>
@@ -120,7 +121,7 @@ function PropertyListItem({
               <ArrowUpDown size={12} /> {property.Elevator || "-"}
             </span>
             <span className="flex items-center gap-1">
-              <Car size={12} /> {property.Parking_Type  || "-"}
+              <Car size={12} /> {property.Parking_Type || "-"}
             </span>
           </span>
         </div>
@@ -151,6 +152,39 @@ function MatchedTenantCard({
   const { tenant, matchPercentage, matchedCriteria } = match;
   const [copied, setCopied] = useState(false);
   const navigate = useNavigate(); // 👈 ADD THIS
+  const queryClient = useQueryClient();
+  const [showChat, setShowChat] = useState(false);
+  const [chatMessage, setChatMessage] = useState("");
+  const [sending, setSending] = useState(false);
+
+  const WEBHOOK_URL = "https://hook.eu2.make.com/9ts9wq1y6hqf8pps2qg660qatfhen4gb"; // 👈 change
+
+  const handleSendChat = async () => {
+    if (!chatMessage.trim()) return;
+
+    setSending(true);
+
+    try {
+      await fetch(WEBHOOK_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          recordId: tenant.id,
+          phone: tenant.Phone_number,
+          message: chatMessage,
+          agentName: getLoggedInAgentName(),
+        }),
+      });
+
+      setChatMessage("");
+      setShowChat(false);
+    } catch (err) {
+      console.error("Webhook failed", err);
+      alert("Failed to send message");
+    } finally {
+      setSending(false);
+    }
+  };
 
   // const messageText = templateMessage
   //   ? `${templateMessage}\n\nView Property details:`
@@ -175,6 +209,12 @@ function MatchedTenantCard({
     await navigator.clipboard.writeText(fullMessageForShare);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
+    const agentName = getLoggedInAgentName();
+    try {
+      await updateTenantAgent(tenant.id, agentName);
+    } catch (err) {
+      console.error("Airtable update failed", err);
+    }
   };
 
   const handleWhatsAppClick = async () => {
@@ -186,10 +226,72 @@ function MatchedTenantCard({
     }
   };
 
+  const [cstatus, setCStatus] = useState(tenant.Current_Status || "חָדָשׁ");
+  const [cloading, setCLoading] = useState(false);
+
+  const STATUS_OPTIONS = [
+    "חָדָשׁ",
+    "מוּצָע",
+    "נִקרָא",
+    "מְתוּאָם",
+    "לא רלוונטי",
+  ];
+  const STATUS_COLORS: Record<string, string> = {
+    חָדָשׁ: "bg-blue-100 text-blue-700",
+    מוּצָע: "bg-purple-100 text-purple-700",
+    נִקרָא: "bg-green-100 text-green-700",
+    מְתוּאָם: "bg-yellow-100 text-yellow-800",
+    "לא רלוונטי": "bg-red-100 text-red-700",
+  };
+
+  const updateTenantStatus = async (recordId: string, newStatus: string) => {
+    const response = await fetch(
+      `https://api.airtable.com/v0/${import.meta.env.VITE_AIRTABLE_BASE_ID}/${import.meta.env.VITE_TENANTTABLE}/${recordId}`,
+      {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${import.meta.env.VITE_AIRTABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          fields: {
+            Current_Status: newStatus,
+            Agent_Name: getLoggedInAgentName(), // Optionally update agent name here as well
+          },
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error("Failed to update status");
+    }
+
+    return response.json();
+  };
+
+  const handleChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newStatus = e.target.value;
+    setCStatus(newStatus);
+    setCLoading(true);
+
+    try {
+      await updateTenantStatus(tenant.id, newStatus);
+
+      // 🔥 REFRESH TENANTS LIST
+      queryClient.invalidateQueries({ queryKey: ["/api/tenants"] });
+    } catch (err) {
+      console.error("Failed to update status");
+    } finally {
+      setCLoading(false);
+    }
+  };
+
   return (
-    <Card className="border">
-      <CardContent className="p-4 space-y-3">
-        <div className="flex items-start gap-3">
+    <Card
+      className={`w-full max-w-full overflow-hidden cursor-pointer border transition-shadow `}
+    >
+      <CardContent className="p-4 space-y-3 w-full overflow-hidden">
+        <div className="flex flex-wrap justify-between items-start gap-2">
           <Avatar className="h-9 w-9">
             <AvatarImage src={tenant.Profile_Photo} />
             <AvatarFallback>
@@ -199,11 +301,76 @@ function MatchedTenantCard({
 
           <div className="flex-1 min-w-0">
             <h4 className="text-sm font-medium truncate">{tenant.Full_name}</h4>
-            <p className="text-xs flex items-center gap-1 mt-1">
-              <Phone size={12} /> {tenant.Phone_number}
-            </p>
-          </div>
+            <div className="relative inline-block">
+              {/* PHONE NUMBER (click target) */}
+              <p
+                onClick={() => setShowChat((p) => !p)}
+                className="text-xs flex items-center gap-1 mt-1 cursor-pointer text-blue-600 hover:underline"
+              >
+                <Phone size={12} /> {tenant.Phone_number}
+              </p>
 
+              {/* CHAT POPUP */}
+              {showChat && (
+                <div className="absolute top-full mb-2 left-0 z-50 w-64 bg-white dark:bg-slate-900 border rounded-lg shadow-xl p-3 space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-semibold">
+                      Send Message On WhatsApp
+                    </span>
+                    <button
+                      onClick={() => {
+                        setShowChat(false);
+                        setChatMessage("");
+                      }}
+                      className="text-xs text-gray-500 hover:text-red-500"
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  <textarea
+                    rows={3}
+                    value={chatMessage}
+                    onChange={(e) => setChatMessage(e.target.value)}
+                    placeholder="Type message..."
+                    className="w-full text-xs border rounded p-2 resize-none focus:outline-none focus:ring"
+                  />
+
+                  <Button
+                    size="sm"
+                    className="w-full"
+                    disabled={sending}
+                    onClick={handleSendChat}
+                  >
+                    {sending ? "Sending..." : "Send"}
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="text-right">
+            <select
+              dir="ltl"
+              value={cstatus}
+              onChange={handleChange}
+              disabled={cloading}
+              className={`text-xs px-3 py-1 rounded-full border transition outline-none
+      ${STATUS_COLORS[cstatus]}`}
+            >
+              {STATUS_OPTIONS.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </div>
+          {tenant.Agent_Name && (
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              <b className={`${STATUS_COLORS[cstatus]}`}>
+                By: {tenant.Agent_Name}
+              </b>
+            </p>
+          )}
           <div className="text-sm font-semibold text-slate-700 dark:text-slate-300">
             {matchPercentage}%
           </div>
@@ -252,7 +419,7 @@ function MatchedTenantCard({
 
             <a
               href={`https://wa.me/${formatPhoneForWhatsApp(
-                tenant.Phone_number || ""
+                tenant.Phone_number || "",
               )}?text=${encodeURIComponent(fullMessageForShare)}`}
               target="_blank"
               rel="noopener noreferrer"
@@ -289,8 +456,10 @@ function MatchedTenantCard({
 
 export default function Dashboard() {
   const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(
-    null
+    null,
   );
+  const [searchAddress, setSearchAddress] = useState("");
+  const navigate = useNavigate(); // 👈 ADD THIS
 
   // Sidebar filters state
   const [filters, setFilters] = useState<PropertyFilters>({
@@ -302,6 +471,7 @@ export default function Dashboard() {
     balcony: null,
     availability: "Available",
     tenantStatus: "Active", // 👈 ADD
+    Current_Status: "all", // 👈 ADD
   });
 
   const {
@@ -345,16 +515,26 @@ export default function Dashboard() {
   }, [properties]);
 
   const extractNumber = (value: string | number | undefined) => {
-  if (value === undefined || value === null) return 0;
-  const match = value.toString().match(/[\d.]+/); // matches digits and decimal point
-  return match ? parseFloat(match[0]) : 0;
-}
+    if (value === undefined || value === null) return 0;
+    const match = value.toString().match(/[\d.]+/); // matches digits and decimal point
+    return match ? parseFloat(match[0]) : 0;
+  };
 
   // Apply sidebar filters
   const filteredProperties = useMemo(() => {
     if (!properties) return [];
     return properties.filter((p) => {
-      if (filters.bedrooms && (extractNumber(p.How_many_rooms) || 0) < filters.bedrooms)
+      // ✅ ADDRESS SEARCH FILTER
+      if (
+        searchAddress &&
+        !p.Property_Address?.toLowerCase().includes(searchAddress.toLowerCase())
+      ) {
+        return false;
+      }
+      if (
+        filters.bedrooms &&
+        (extractNumber(p.How_many_rooms) || 0) < filters.bedrooms
+      )
         return false;
       if (filters.minRent && (p.Asking_price || 0) < filters.minRent)
         return false;
@@ -376,11 +556,11 @@ export default function Dashboard() {
         return false;
       return true;
     });
-  }, [properties, filters]);
+  }, [properties, filters, searchAddress]);
 
   const selectedProperty = useMemo(
     () => filteredProperties.find((p) => p.id === selectedPropertyId) || null,
-    [selectedPropertyId, filteredProperties]
+    [selectedPropertyId, filteredProperties],
   );
 
   const parseBudgetLimits = (value: unknown): number[] => {
@@ -410,17 +590,16 @@ export default function Dashboard() {
   const matches = useMemo(() => {
     if (!selectedProperty || !tenants) return [];
 
-     // Helper to extract numeric part from strings like "1 חדרים"
+    // Helper to extract numeric part from strings like "1 חדרים"
     const extractNumber = (value: string | number | undefined) => {
       if (value === undefined || value === null) return 0;
       const match = value.toString().match(/[\d.]+/); // matches digits and decimal point
       return match ? parseFloat(match[0]) : 0;
-    }
+    };
 
     const propertyPrice = Number(selectedProperty.Asking_price);
     // const propertyRooms = Number(selectedProperty.How_many_rooms);
     const propertyRooms = extractNumber(selectedProperty.How_many_rooms);
-
 
     if (isNaN(propertyPrice) || isNaN(propertyRooms)) return [];
 
@@ -440,231 +619,126 @@ export default function Dashboard() {
     const BUDGET_TOLERANCE_DOWN = 1500; // allowed below tenant budget
     const BUDGET_TOLERANCE_UP = 500; // allowed above tenant budget
 
-    return tenants
-      .filter((tenant) => {
-        if (
-          filters.tenantStatus !== "all" &&
-          tenant.Status !== filters.tenantStatus
-        ) {
-          return false;
-        }
-        return true;
-      })
-      .map((tenant) => {
-        let score = 0;
-        const matchedCriteria: string[] = [];
-
-        const tenantBudgets = parseBudgetLimits(tenant.Current_budget);
-        const tenantRooms = parseRoomNumbers(tenant.Number_of_Rooms);
-
-        const tenantAreas = Array.isArray(tenant.In_which_area_are_you_looking)
-          ? tenant.In_which_area_are_you_looking.map((v: string) =>
-              v.toLowerCase()
-            )
-          : parseMultiSelect(tenant.In_which_area_are_you_looking);
-
-        /* ---------------- AREA (Hard gate) ---------------- */
-        const isAreaMatch =
-          !!propertyArea && tenantAreas.includes(propertyArea);
-
-        if (!isAreaMatch) return null;
-
-        score += 25;
-        matchedCriteria.push("Area Match");
-
-        /* ---------------- BUDGET (Hard gate) ---------------- */
-
-        const isBudgetMatch = tenantBudgets.some((budget) => {
-          const min = budget - BUDGET_TOLERANCE_DOWN;
-          const max = budget + BUDGET_TOLERANCE_UP;
-          return propertyPrice >= min && propertyPrice <= max;
-        });
-
-        if (!isBudgetMatch) return null;
-
-        score += 25;
-        matchedCriteria.push("Within Budget");
-
-        /* ---------------- ROOMS (Core score) ---------------- */
-        const isRoomsMatch = tenantRooms.some((tenantRoom) => {
-          const min = tenantRoom - 0.5;
-          const max = tenantRoom + 1;
-          return propertyRooms >= min && propertyRooms <= max;
-        });
-
-        if (!isRoomsMatch) return null; // ❌ reject if rooms don't match
-
-
-        if (isRoomsMatch) {
-          score += 25;
-          matchedCriteria.push("Rooms Match");
-        }
-
-        /* ---------------- ELEVATOR (Bonus) ---------------- */
-        if (tenant.Elevator === selectedProperty.Elevator) {
-          score += 12.5;
-          matchedCriteria.push("Elevator Match");
-        }
-
-        /* ---------------- PARKING (Bonus) ---------------- */
-
-        const tenantParking = tenant.Parking_Importance?.toString().trim();
-        const propertyParking =
-          selectedProperty.Parking_Type?.toString().trim();
-
-        let parkingScore = 0;
-
-        // MUST HAVE PARKING → HARD GATE
-        if (
-          tenantParking ===
-          "Must have parking (without parking it is not relevant)"
-        ) {
-          if (propertyParking !== "Private parking") {
-            return null; // ❌ reject tenant
-          }
-          parkingScore = 12.5;
-        }
-
-        // DESIRABLE → SOFT LOGIC
-        else if (tenantParking === "Parking is desirable but not mandatory") {
+    return (
+      tenants
+        .filter((tenant) => {
           if (
-            propertyParking === "Private parking" ||
-            propertyParking === "Shared parking / based on availability"
+            filters.Current_Status !== "all" &&
+            tenant.Current_Status !== filters.Current_Status
           ) {
-            parkingScore = 12.5;
-          } else {
-            parkingScore = 5; // weak but allowed
+            return false;
           }
-        }
+          return true;
+        })
+        // .filter((tenant) => {
+        //   if (
+        //     filters.tenantStatus !== "all" &&
+        //     tenant.Status !== filters.tenantStatus
+        //   ) {
+        //     return false;
+        //   }
+        //   return true;
+        // })
+        .map((tenant) => {
+          let score = 0;
+          const matchedCriteria: string[] = [];
 
-        // NO PARKING REQUIRED → ALWAYS OK
-        else if (tenantParking === "No parking required") {
-          parkingScore = 12.5;
-        }
+          const tenantBudgets = parseBudgetLimits(tenant.Current_budget);
+          const tenantRooms = parseRoomNumbers(tenant.Number_of_Rooms);
 
-        if (parkingScore > 0) {
-          score += parkingScore;
+          const tenantAreas = Array.isArray(
+            tenant.In_which_area_are_you_looking,
+          )
+            ? tenant.In_which_area_are_you_looking.map((v: string) =>
+                v.toLowerCase(),
+              )
+            : parseMultiSelect(tenant.In_which_area_are_you_looking);
+
+          /* ---------------- AREA (Hard gate) ---------------- */
+          const isAreaMatch =
+            !!propertyArea && tenantAreas.includes(propertyArea);
+
+          if (!isAreaMatch) return null;
+
+          score += 25;
+          matchedCriteria.push("Area Match");
+
+          /* ---------------- BUDGET (Hard gate) ---------------- */
+
+          const isBudgetMatch = tenantBudgets.some((budget) => {
+            const min = budget - BUDGET_TOLERANCE_DOWN;
+            const max = budget + BUDGET_TOLERANCE_UP;
+            return propertyPrice >= min && propertyPrice <= max;
+          });
+
+          if (!isBudgetMatch) return null;
+
+          score += 25;
+          matchedCriteria.push("Within Budget");
+
+          /* ---------------- ROOMS (Core score) ---------------- */
+          const isRoomsMatch = tenantRooms.some((tenantRoom) => {
+            const min = tenantRoom - 0.5;
+            const max = tenantRoom + 1;
+            return propertyRooms >= min && propertyRooms <= max;
+          });
+
+          if (!isRoomsMatch) return null; // ❌ reject if rooms don't match
+
+          if (isRoomsMatch) {
+            score += 25;
+            matchedCriteria.push("Rooms Match");
+          }
+
+          /* ---------------- ELEVATOR (Bonus) ---------------- */
+          if (tenant.Elevator === selectedProperty.Elevator) {
+            score += 12.5;
+            matchedCriteria.push("Elevator Match");
+          }
+
+          /* ---------------- PARKING (Hard gate - Mandatory) ---------------- */
+
+          const tenantParking = tenant.Parking_Importance?.toString().trim();
+          const propertyParking =
+            selectedProperty.Parking_Type?.toString().trim();
+
+          let isParkingMatch = false;
+
+          // Must have parking → only Private parking allowed
+          if (tenantParking === "חייבת חניה (ללא חניה זה לא רלוונטי)") {
+            isParkingMatch = propertyParking === "חניה פרטית";
+          }
+
+          // Desirable → Private OR Shared allowed
+          else if (tenantParking === "רצוי שתהיה חניה אך לא חובה") {
+            isParkingMatch =
+              propertyParking === "חניה פרטית" ||
+              propertyParking === "אֵין חֲנִייָה" ||
+              propertyParking === "חניה משותפת / על בסיס מקום פנוי";
+          }
+
+          // No parking required → always OK
+          else if (tenantParking === "אין צורך בחניה") {
+            isParkingMatch = propertyParking === "אֵין חֲנִייָה";
+          }
+
+          // 🚨 HARD GATE → reject if no match
+          if (!isParkingMatch) return null;
+
+          score += 12.5;
           matchedCriteria.push("Parking Match");
-        }
 
-        return {
-          tenant,
-          matchPercentage: Math.round(score),
-          matchedCriteria,
-          isMatch: true, // already passed hard gates
-        };
-      })
-      .filter(Boolean)
-      .filter((m: any) => m.matchPercentage >= 65);
-  }, [selectedProperty, tenants, filters.tenantStatus]);
-
-  // const matches = useMemo(() => {
-  //   if (!selectedProperty || !tenants) return [];
-
-  //   const propertyPrice = Number(selectedProperty.Asking_price);
-  //   const propertyRooms = Number(selectedProperty.How_many_rooms);
-
-  //   if (isNaN(propertyPrice) || isNaN(propertyRooms)) return [];
-
-  //   const propertyArea =
-  //     selectedProperty.In_which_area_is_the_property?.toString()
-  //       .trim()
-  //       .toLowerCase();
-
-  //   const parseMultiSelect = (value?: string) =>
-  //     value
-  //       ? value
-  //           .split(",")
-  //           .map((v) => v.trim().toLowerCase())
-  //           .filter(Boolean)
-  //       : [];
-
-  //   const BUDGET_TOLERANCE = 500;
-
-  //   return tenants
-  //     .filter((tenant) => {
-  //       if (
-  //         filters.tenantStatus !== "all" &&
-  //         tenant.Status !== filters.tenantStatus
-  //       ) {
-  //         return false;
-  //       }
-  //       return true;
-  //     })
-  //     .map((tenant) => {
-  //       let score = 0;
-  //       const matchedCriteria: string[] = [];
-
-  //       const tenantBudgets = parseBudgetLimits(tenant.Current_budget);
-  //       const tenantRooms = parseRoomNumbers(tenant.Number_of_Rooms);
-
-  //       const tenantAreas = Array.isArray(tenant.In_which_area_are_you_looking)
-  //         ? tenant.In_which_area_are_you_looking.map((v: string) =>
-  //             v.toLowerCase()
-  //           )
-  //         : parseMultiSelect(tenant.In_which_area_are_you_looking);
-
-  //       /* ---------------- AREA (25%) ---------------- */
-  //       const isAreaMatch =
-  //         !!propertyArea && tenantAreas.includes(propertyArea);
-
-  //       if (!isAreaMatch) {
-  //         return null; // ❌ hard stop
-  //       }
-
-  //       score += 25;
-  //       matchedCriteria.push("Area Match");
-
-  //       /* ---------------- BUDGET (25%) ---------------- */
-  //       const isBudgetMatch = tenantBudgets.some(
-  //         (budget) => propertyPrice <= budget + BUDGET_TOLERANCE
-  //       );
-
-  //       if (!isBudgetMatch) {
-  //         return null; // ❌ hard stop
-  //       }
-
-  //       score += 25;
-  //       matchedCriteria.push("Within Budget");
-
-  //       /* ---------------- ROOMS (25%) ---------------- */
-  //       const isRoomsMatch = tenantRooms.some(
-  //         (r) => r === propertyRooms || r - 1 === propertyRooms
-  //       );
-
-  //       if (isRoomsMatch) {
-  //         score += 25;
-  //         matchedCriteria.push("Rooms Match");
-  //       }
-
-  //       /* ---------------- ELEVATOR (12.5%) ---------------- */
-  //       const isElevatorMatch =
-  //         isRoomsMatch && tenant.Elevator === selectedProperty.Elevator;
-
-  //       if (isElevatorMatch) {
-  //         score += 12.5;
-  //         matchedCriteria.push("Elevator Match");
-  //       }
-
-  //       /* ---------------- PARKING (12.5%) ---------------- */
-  //       const isParkingMatch =
-  //         isRoomsMatch && tenant.Parking === selectedProperty.Parking;
-
-  //       if (isParkingMatch) {
-  //         score += 12.5;
-  //         matchedCriteria.push("Parking Match");
-  //       }
-
-  //       return {
-  //         tenant,
-  //         matchPercentage: Math.round(score),
-  //         matchedCriteria,
-  //         isMatch: score >= 65, // Area + Budget minimum
-  //       };
-  //     })
-  //     .filter(Boolean)
-  //     .filter((m: any) => m.isMatch);
-  // }, [selectedProperty, tenants, filters.tenantStatus]);
+          return {
+            tenant,
+            matchPercentage: Math.round(score),
+            matchedCriteria,
+            isMatch: true, // already passed hard gates
+          };
+        })
+        .filter(Boolean)
+        .filter((m: any) => m.matchPercentage >= 65)
+    );
+  }, [selectedProperty, tenants, filters.tenantStatus, filters.Current_Status]);
 
   if (pError || tError)
     return (
@@ -677,7 +751,7 @@ export default function Dashboard() {
     <Layout>
       <div className="space-y-6">
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {pLoading ? (
             <>
               <StatsCardSkeleton />
@@ -696,7 +770,7 @@ export default function Dashboard() {
                 title="Available Properties"
                 value={
                   properties?.filter(
-                    (p) => p.Is_the_apartment_available === "Available"
+                    (p) => p.Is_the_apartment_available === "Available",
                   ).length || 0
                 }
                 icon={Building2}
@@ -714,6 +788,44 @@ export default function Dashboard() {
                 icon={Users}
               />
               <StatsCard title="Matches" value={matches.length} icon={Users} />
+              <StatsCard
+                title="New Tenants Registered Today"
+                value={
+                  tenants?.filter((p) => {
+                    if (!p.Submission_time) return false;
+
+                    const today = new Date();
+                    const submissionDate = new Date(p.Submission_time);
+
+                    return (
+                      submissionDate.getFullYear() === today.getFullYear() &&
+                      submissionDate.getMonth() === today.getMonth() &&
+                      submissionDate.getDate() === today.getDate()
+                    );
+                  }).length || 0
+                }
+                icon={Building2}
+              />
+              <StatsCard
+                title="Properties Offered to Tenants"
+                value={
+                  tenants?.filter((p) => p.Current_Status === "מוּצָע")
+                    .length || 0
+                }
+                icon={Building2}
+                onClick={() => navigate("/tenants?status=מוּצָע")}
+                className="cursor-pointer"
+              />
+              <StatsCard
+                title="Tenant Not relevant"
+                value={
+                  tenants?.filter((p) => p.Current_Status === "לא רלוונטי")
+                    .length || 0
+                }
+                icon={Building2}
+                onClick={() => navigate("/tenants?status=מוּצָע")}
+                className="cursor-pointer"
+              />
             </>
           )}
         </div>
@@ -723,9 +835,23 @@ export default function Dashboard() {
           {/* Sidebar Filters */}
           <aside className="space-y-4 bg-white p-4 rounded shadow">
             <h2 className="text-lg font-semibold">Filters</h2>
+            <div>
+              <label className="block mb-1 text-sm font-medium">
+                חפש לפי כתובת
+              </label>
+              <input
+                type="text"
+                value={searchAddress}
+                onChange={(e) => setSearchAddress(e.target.value)}
+                placeholder="Enter property address..."
+                className="w-full border p-2 rounded"
+              />
+            </div>
 
             <div>
-              <label className="block mb-1 text-sm font-medium">חדרי שינה</label>
+              <label className="block mb-1 text-sm font-medium">
+                חדרי שינה
+              </label>
               <input
                 type="number"
                 min={0}
@@ -738,7 +864,9 @@ export default function Dashboard() {
             </div>
 
             <div>
-              <label className="block mb-1 text-sm font-medium">לִשְׂכּוֹר (₪)</label>
+              <label className="block mb-1 text-sm font-medium">
+                לִשְׂכּוֹר (₪)
+              </label>
               <div className="flex gap-2">
                 <input
                   type="number"
@@ -795,13 +923,17 @@ export default function Dashboard() {
               >
                 <option value="all">הכל</option>
                 <option value="אֵין חֲנִייָה">אֵין חֲנִייָה</option>
-                <option value="חניה משותפת / על בסיס מקום פנוי">חניה משותפת / על בסיס מקום פנוי</option>
+                <option value="חניה משותפת / על בסיס מקום פנוי">
+                  חניה משותפת / על בסיס מקום פנוי
+                </option>
                 <option value="חניה פרטית">חניה פרטית</option>
               </select>
             </div>
 
             <div>
-              <label className="block mb-1 text-sm font-medium">מִרפֶּסֶת</label>
+              <label className="block mb-1 text-sm font-medium">
+                מִרפֶּסֶת
+              </label>
               <select
                 value={filters.balcony ?? "all"}
                 onChange={(e) =>
@@ -818,7 +950,7 @@ export default function Dashboard() {
               </select>
             </div>
 
-            <div>
+            <div style={{ display: "none" }}>
               <label className="block mb-1 text-sm font-medium">
                 זמינות נכס
               </label>
@@ -835,7 +967,7 @@ export default function Dashboard() {
                 <option value="NA">NA</option>
               </select>
             </div>
-            <div>
+            <div style={{ display: "none" }}>
               <label className="block mb-1 text-sm font-medium">
                 סטטוס דייר
               </label>
@@ -854,9 +986,32 @@ export default function Dashboard() {
                 <option value="Inactive">Inactive</option>
               </select>
             </div>
+            <div>
+              <label className="block mb-1 text-sm font-medium">
+                סטטוס דייר
+              </label>
+              <select
+                value={filters.Current_Status}
+                onChange={(e) =>
+                  setFilters({
+                    ...filters,
+                    Current_Status: e.target.value,
+                  })
+                }
+                className="w-full border p-2 rounded"
+              >
+                <option value="all">All</option>
+                <option value="חָדָשׁ">חָדָשׁ</option>
+                <option value="מוּצָע">מוּצָע</option>
+                <option value="נִקרָא">נִקרָא</option>
+                <option value="מְתוּאָם">מְתוּאָם</option>
+                <option value="לא רלוונטי">לא רלוונטי</option>
+              </select>
+            </div>
 
             <Button
               onClick={() =>
+                setSearchAddress("") ||
                 setFilters({
                   minRent: 0,
                   maxRent: maxRent || 50000,
@@ -866,6 +1021,7 @@ export default function Dashboard() {
                   balcony: null,
                   availability: "Available",
                   tenantStatus: "Active",
+                  Current_Status: "all",
                 })
               }
               className="w-full mt-2"
@@ -900,6 +1056,7 @@ export default function Dashboard() {
                   action={{
                     label: "Reset Filters",
                     onClick: () =>
+                      setSearchAddress("") ||
                       setFilters({
                         minRent: 0,
                         maxRent: maxRent || 50000,
@@ -907,7 +1064,9 @@ export default function Dashboard() {
                         elevator: null,
                         parking: null,
                         balcony: null,
-                        availability: "all",
+                        availability: "Available",
+                        tenantStatus: "Active",
+                        Current_Status: "all",
                       }),
                   }}
                 />

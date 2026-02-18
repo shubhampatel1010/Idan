@@ -57,7 +57,7 @@ const formatPhoneForWhatsApp = (phone: string) => phone.replace(/\D/g, "");
 const generateDefaultMessage = (
   tenantName: string,
   propertyName: string,
-  propertyUrl: string
+  propertyUrl: string,
 ) =>
   `Property Match Update\n\nHi ${tenantName},\n\nWe found a property that matches your preferences.\n\nProperty: ${propertyName}\n\nView details:\n${propertyUrl}\n\nPlease let us know if you are interested.\n\nRegards,\nProperty Team`;
 
@@ -71,45 +71,235 @@ function TenantListItem({
   isSelected: boolean;
   onSelect: () => void;
 }) {
+  const [cstatus, setCStatus] = useState(tenant.Current_Status || "חָדָשׁ");
+  const [cloading, setCLoading] = useState(false);
+  const [showChat, setShowChat] = useState(false);
+  const [chatMessage, setChatMessage] = useState("");
+  const [sending, setSending] = useState(false);
+
+  const WEBHOOK_URL = "https://hook.eu2.make.com/9ts9wq1y6hqf8pps2qg660qatfhen4gb"; // 👈 change
+
+  const handleSendChat = async () => {
+    if (!chatMessage.trim()) return;
+
+    setSending(true);
+
+    try {
+      await fetch(WEBHOOK_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          recordId: tenant.id,
+          phone: tenant.Phone_number,
+          message: chatMessage,
+          agentName: getLoggedInAgentName(),
+        }),
+      });
+
+      setChatMessage("");
+      setShowChat(false);
+    } catch (err) {
+      console.error("Webhook failed", err);
+      alert("Failed to send message");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const STATUS_OPTIONS = [
+    "חָדָשׁ",
+    "מוּצָע",
+    "נִקרָא",
+    "מְתוּאָם",
+    "לא רלוונטי",
+  ];
+  const STATUS_COLORS: Record<string, string> = {
+    חָדָשׁ: "bg-blue-100 text-blue-700",
+    מוּצָע: "bg-purple-100 text-purple-700",
+    נִקרָא: "bg-green-100 text-green-700",
+    מְתוּאָם: "bg-yellow-100 text-yellow-800",
+    "לא רלוונטי": "bg-red-100 text-red-700",
+  };
+
+  const updateTenantStatus = async (recordId: string, newStatus: string) => {
+    const response = await fetch(
+      `https://api.airtable.com/v0/${import.meta.env.VITE_AIRTABLE_BASE_ID}/${import.meta.env.VITE_TENANTTABLE}/${recordId}`,
+      {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${import.meta.env.VITE_AIRTABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          fields: {
+            Current_Status: newStatus,
+            Agent_Name: getLoggedInAgentName(), // Update agent name on status change
+          },
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error("Failed to update status");
+    }
+
+    return response.json();
+  };
+
+  const handleChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newStatus = e.target.value;
+    setCStatus(newStatus);
+    setCLoading(true);
+
+    try {
+      await updateTenantStatus(tenant.id, newStatus);
+    } catch (err) {
+      console.error("Failed to update status");
+    } finally {
+      setCLoading(false);
+    }
+  };
   return (
     <Card
       onClick={onSelect}
-      className={`cursor-pointer border transition-shadow ${
+      className={`cursor-pointer border transition-all ${
         isSelected
           ? "border-slate-400 bg-slate-50 dark:bg-slate-900"
           : "hover:shadow-sm"
       }`}
     >
-      <CardContent className="p-4 space-y-2 flex items-center gap-3">
-        <Avatar className="h-9 w-9">
-          <AvatarImage src={tenant.Profile_Photo} />
-          <AvatarFallback>
-            <User size={16} />
-          </AvatarFallback>
-        </Avatar>
-        <div className="flex-1 min-w-0">
-          <h3 className="font-medium text-sm truncate">{tenant.Full_name}</h3>
-          <p className="text-xs flex items-center gap-1 mt-1">
-            <Phone size={12} /> {tenant.Phone_number}
-          </p>
-          <p className="text-xs flex items-center gap-1 mt-1">
-            <Bed size={12} /> {tenant.Number_of_Rooms || "NA"}
-            <ArrowUpDown size={12} /> {tenant.Elevator || "NA"}
-            <Car size={12} /> {tenant.Parking_Importance || "NA"}
-          </p>
-          <p className="text-xs flex items-center gap-1 mt-1">
-            <MapPin size={12} /> {tenant.In_which_area_are_you_looking || "NA"}
-          </p>
-          <p className="text-xs flex items-center gap-1 mt-1">
-            ₪{tenant.Current_budget || "-"}/mo
-          </p>
+      <CardContent className="p-3 sm:p-4">
+        <div className="flex gap-3">
+          {/* Avatar */}
+          <Avatar className="h-10 w-10 shrink-0">
+            <AvatarImage src={tenant.Profile_Photo} />
+            <AvatarFallback>
+              <User size={16} />
+            </AvatarFallback>
+          </Avatar>
+
+          {/* Content */}
+          <div className="flex-1 min-w-0 space-y-1">
+            {/* Name + Status */}
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <h3 className="font-medium text-sm truncate max-w-[180px]">
+                {tenant.Full_name}
+              </h3>
+
+              <select
+                dir="ltl"
+                value={cstatus}
+                onChange={handleChange}
+                disabled={cloading}
+                onClick={(e) => e.stopPropagation()}
+                className={`text-xs px-2 py-1 rounded-full border outline-none max-w-[140px]
+                ${STATUS_COLORS[cstatus]}`}
+              >
+                {STATUS_OPTIONS.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Agent */}
+            {tenant.Agent_Name && (
+              <p className="text-xs text-slate-500">
+                By: <b>{tenant.Agent_Name}</b>
+              </p>
+            )}
+
+            <div className="relative inline-block">
+              {/* PHONE NUMBER (click target) */}
+              <p
+                onClick={() => setShowChat((p) => !p)}
+                className="text-xs flex items-center gap-1 mt-1 cursor-pointer text-blue-600 hover:underline"
+              >
+                <Phone size={12} /> {tenant.Phone_number}
+              </p>
+
+              {/* CHAT POPUP */}
+              {showChat && (
+                <div className="absolute top-full mb-2 left-0 z-50 w-64 bg-white dark:bg-slate-900 border rounded-lg shadow-xl p-3 space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-semibold">
+                      Send Message On WhatsApp
+                    </span>
+                    <button
+                      onClick={() => {
+                        setShowChat(false);
+                        setChatMessage("");
+                      }}
+                      className="text-xs text-gray-500 hover:text-red-500"
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  <textarea
+                    rows={3}
+                    value={chatMessage}
+                    onChange={(e) => setChatMessage(e.target.value)}
+                    placeholder="Type message..."
+                    className="w-full text-xs border rounded p-2 resize-none focus:outline-none focus:ring"
+                  />
+
+                  <Button
+                    size="sm"
+                    className="w-full"
+                    disabled={sending}
+                    onClick={handleSendChat}
+                  >
+                    {sending ? "Sending..." : "Send"}
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            {/* Features */}
+            <p className="text-xs flex flex-wrap items-center gap-2">
+              <span className="flex items-center gap-1">
+                <Bed size={12} /> {tenant.Number_of_Rooms || "NA"}
+              </span>
+              <span className="flex items-center gap-1">
+                <ArrowUpDown size={12} /> {tenant.Elevator || "NA"}
+              </span>
+              <span className="flex items-center gap-1">
+                <Car size={12} /> {tenant.Parking_Importance || "NA"}
+              </span>
+            </p>
+
+            {/* Area */}
+            <p className="text-xs flex items-center gap-1">
+              <MapPin size={12} />{" "}
+              {tenant.In_which_area_are_you_looking || "NA"}
+            </p>
+
+            {/* Budget */}
+            <p className="text-xs font-medium">
+              ₪{tenant.Current_budget || "-"} / mo
+            </p>
+
+            {/* Bottom Row */}
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+              <Badge
+                variant={tenant.Status === "Active" ? "default" : "secondary"}
+                className="text-xs"
+              >
+                {tenant.Status ?? "Inactive"}
+              </Badge>
+
+              <Button
+                size="sm"
+                variant={isSelected ? "default" : "secondary"}
+                onClick={(e) => e.stopPropagation()}
+              >
+                View
+              </Button>
+            </div>
+          </div>
         </div>
-        <Badge variant={tenant.Status === "Active" ? "default" : "secondary"}>
-          {tenant.Status ?? "Inactive"}
-        </Badge>
-        <Button size="sm" variant={isSelected ? "default" : "secondary"}>
-          View Matches
-        </Button>
       </CardContent>
     </Card>
   );
@@ -125,18 +315,6 @@ function MatchedPropertyCard({
   tenant: Tenant;
   templateMessage?: string;
 }) {
-  // const message = generateDefaultMessage(
-  //   tenant.Full_name || "there",
-  //   property.Property_Address || "Property",
-  //   `${window.location.origin}/property/${property.id}`
-  // );
-  // const message = templateMessage
-  //   ? `${templateMessage}\n\nView Property details:\n${window.location.origin}/property/${property.id}`
-  //   : "";
-
-  // const messageText = templateMessage
-  //   ? `${templateMessage}\n\nView Property details:`
-  //   : "";
   const messageText = `שלום ${tenant.Full_name},\n\n${
     templateMessage || ""
   }\n\nView Property details:`;
@@ -153,6 +331,12 @@ function MatchedPropertyCard({
     await navigator.clipboard.writeText(fullMessageForShare);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
+    const agentName = getLoggedInAgentName();
+    try {
+      await updateTenantAgent(tenant.id, agentName);
+    } catch (err) {
+      console.error("Airtable update failed", err);
+    }
   };
 
   const handleWhatsAppClick = async () => {
@@ -212,7 +396,7 @@ function MatchedPropertyCard({
               <ArrowUpDown size={12} /> {property.Elevator || "-"}
             </span>
             <span className="flex items-center gap-1">
-              <Car size={12} /> {property.Parking_Type  || "-"}
+              <Car size={12} /> {property.Parking_Type || "-"}
             </span>
           </span>
         </div>
@@ -230,7 +414,7 @@ function MatchedPropertyCard({
 
             <a
               href={`https://wa.me/${formatPhoneForWhatsApp(
-                tenant.Phone_number || ""
+                tenant.Phone_number || "",
               )}?text=${encodeURIComponent(fullMessageForShare)}`}
               target="_blank"
               rel="noopener noreferrer"
@@ -264,7 +448,7 @@ function MatchedPropertyCard({
 export default function TenantDashboard() {
   const [selectedTenantId, setSelectedTenantId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState(""); // <-- Tenant search term
-
+  const navigate = useNavigate(); // 👈 ADD THIS
   const [filters, setFilters] = useState<PropertyFilters & { Status?: string }>(
     {
       minRent: 0,
@@ -272,7 +456,8 @@ export default function TenantDashboard() {
       bedrooms: 0,
       availability: "Available",
       Status: "Active",
-    }
+      Current_Status: "all",
+    },
   );
 
   const {
@@ -312,7 +497,7 @@ export default function TenantDashboard() {
 
   const selectedTenant = useMemo(
     () => tenants?.find((t) => t.id === selectedTenantId) || null,
-    [selectedTenantId, tenants]
+    [selectedTenantId, tenants],
   );
 
   const parseBudgetLimits = (value: unknown): number[] => {
@@ -356,6 +541,10 @@ export default function TenantDashboard() {
       const matchesStatus =
         filters.Status === "all" || t.Status === filters.Status;
 
+      const matchesCurrentStatus =
+        filters.Current_Status === "all" ||
+        t.Current_Status === filters.Current_Status;
+
       /* ---------------- Rooms ---------------- */
       const tenantRooms = parseRoomNumbers(t.Number_of_Rooms);
       const matchesRooms =
@@ -368,89 +557,15 @@ export default function TenantDashboard() {
         tenantBudgets.length === 0 ||
         tenantBudgets.some((b) => b >= filters.minRent && b <= filters.maxRent);
 
-      return matchesSearch && matchesStatus && matchesRooms && matchesBudget;
+      return (
+        matchesSearch &&
+        matchesStatus &&
+        matchesRooms &&
+        matchesBudget &&
+        matchesCurrentStatus
+      );
     });
   }, [tenants, searchTerm, filters]);
-
-  // // Filter properties that match selected tenant
-  // const matchedProperties = useMemo(() => {
-  //   if (!selectedTenant || !properties) return [];
-  //   const normalize = (v?: string) => v?.toString().trim().toLowerCase() ?? "";
-  //   const parseMultiSelect = (value?: string | string[]) => {
-  //     if (Array.isArray(value)) {
-  //       return value.map((v) => v.toLowerCase());
-  //     }
-  //     return value
-  //       ? value
-  //           .split(",")
-  //           .map((v) => v.trim().toLowerCase())
-  //           .filter(Boolean)
-  //       : [];
-  //   };
-
-  //   const tenantBudgets = parseBudgetLimits(selectedTenant.Current_budget);
-  //   const tenantRooms = parseRoomNumbers(selectedTenant.Number_of_Rooms);
-  //   const tenantAreas = parseMultiSelect(
-  //     selectedTenant.In_which_area_are_you_looking
-  //   );
-
-  //   return properties.filter((p) => {
-  //     const price = Number(p.Asking_price);
-  //     const rooms = Number(p.How_many_rooms);
-
-  //     if (isNaN(price) || isNaN(rooms)) return false;
-
-  //     const propertyArea = normalize(p.In_which_area_is_the_property);
-
-  //     const isAvailabilityMatch =
-  //       filters.availability === "all" ||
-  //       p.Is_the_apartment_available === filters.availability;
-
-  //     const BUDGET_TOLERANCE = 500;
-
-  //     // ✅ Budget ±500 match
-  //     const isPriceMatch =
-  //       tenantBudgets.length === 0 ||
-  //       tenantBudgets.some(
-  //         (budget) =>
-  //           budget >= price - BUDGET_TOLERANCE &&
-  //           budget <= price + BUDGET_TOLERANCE
-  //       );
-
-  //     const isRoomMatch =
-  //       tenantRooms.length === 0 || tenantRooms.some((r) => rooms >= r);
-
-  //     // ✅ Area MANDATORY (tenant contains property area)
-  //     const isAreaMatch = propertyArea && tenantAreas.includes(propertyArea);
-
-  //     // ✅ Elevator MANDATORY
-  //     const isElevatorMatch = selectedTenant.Elevator === p.Elevator;
-
-  //     // ✅ Parking OPTIONAL
-  //     const isParkingMatch = selectedTenant.Parking === p.Parking;
-
-  //      // ✅ Matched criteria array
-  //     const matchedCriteria: string[] = [];
-  //     if (isPriceMatch) matchedCriteria.push("Within Budget");
-  //     if (isRoomMatch) matchedCriteria.push("Rooms Match");
-  //     if (isAreaMatch) matchedCriteria.push("Area Match");
-  //     if (isElevatorMatch) matchedCriteria.push("Elevator Match");
-  //     if (isParkingMatch) matchedCriteria.push("Parking Match");
-
-  //     // ✅ Calculate match percentage
-  //     const matchPercentage = Math.round((matchedCriteria.length / 5) * 100);
-
-  //     return (
-  //       isAvailabilityMatch &&
-  //       isPriceMatch &&
-  //       isRoomMatch &&
-  //       matchPercentage > 65 &&
-  //       isAreaMatch &&
-  //       isElevatorMatch
-  //       // isParkingMatch &&
-  //     );
-  //   });
-  // }, [selectedTenant, properties, filters]);
 
   const matchedProperties = useMemo(() => {
     if (!selectedTenant || !properties) return [];
@@ -472,7 +587,7 @@ export default function TenantDashboard() {
     const tenantBudgets = parseBudgetLimits(selectedTenant.Current_budget);
     const tenantRooms = parseRoomNumbers(selectedTenant.Number_of_Rooms);
     const tenantAreas = parseMultiSelect(
-      selectedTenant.In_which_area_are_you_looking
+      selectedTenant.In_which_area_are_you_looking,
     );
 
     const BUDGET_TOLERANCE_DOWN = 1500; // allowed below tenant budget
@@ -485,7 +600,7 @@ export default function TenantDashboard() {
         if (value === undefined || value === null) return 0;
         const match = value.toString().match(/[\d.]+/); // matches digits and decimal point
         return match ? parseFloat(match[0]) : 0;
-      }
+      };
       const rooms = extractNumber(p.How_many_rooms);
       // const rooms = Number(p.How_many_rooms);
 
@@ -543,40 +658,31 @@ export default function TenantDashboard() {
 
       const propertyParking = p.Parking_Type?.toString().trim();
 
-      let parkingScore = 0;
+      let isParkingMatch = false;
 
-      // MUST HAVE PARKING → HARD GATE
-      if (
-        tenantParking ===
-        "Must have parking (without parking it is not relevant)"
-      ) {
-        if (propertyParking !== "Private parking") {
-          return false; // ❌ property not relevant
-        }
-        parkingScore = 12.5;
+      // Must have parking → only Private parking allowed
+      if (tenantParking === "חייבת חניה (ללא חניה זה לא רלוונטי)") {
+        isParkingMatch = propertyParking === "חניה פרטית";
       }
 
-      // DESIRABLE BUT NOT MANDATORY → SOFT MATCH
-      else if (tenantParking === "Parking is desirable but not mandatory") {
-        if (
-          propertyParking === "Private parking" ||
-          propertyParking === "Shared parking / based on availability"
-        ) {
-          parkingScore = 12.5;
-        } else {
-          parkingScore = 5; // weak but allowed
-        }
+      // Desirable → Private OR Shared allowed
+      else if (tenantParking === "רצוי שתהיה חניה אך לא חובה") {
+        isParkingMatch =
+          propertyParking === "חניה פרטית" ||
+          propertyParking === "אֵין חֲנִייָה" ||
+          propertyParking === "חניה משותפת / על בסיס מקום פנוי";
       }
 
-      // NO PARKING REQUIRED → ALWAYS OK
-      else if (tenantParking === "No parking required") {
-        parkingScore = 12.5;
+      // No parking required → always OK
+      else if (tenantParking === "אין צורך בחניה") {
+        isParkingMatch = propertyParking === "אֵין חֲנִייָה";
       }
 
-      if (parkingScore > 0) {
-        score += parkingScore;
-        matchedCriteria.push("Parking Match");
-      }
+      // 🚨 HARD GATE → reject if no match
+      if (!isParkingMatch) return null;
+
+      score += 12.5;
+      matchedCriteria.push("Parking Match");
 
       const matchPercentage = Math.round(score);
 
@@ -596,7 +702,7 @@ export default function TenantDashboard() {
     <Layout>
       <div className="space-y-6">
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
           {pLoading || tLoading ? (
             <>
               <StatsCardSkeleton />
@@ -615,7 +721,7 @@ export default function TenantDashboard() {
                 title="Available Properties"
                 value={
                   properties?.filter(
-                    (p) => p.Is_the_apartment_available === "Available"
+                    (p) => p.Is_the_apartment_available === "Available",
                   ).length || 0
                 }
                 icon={Building2}
@@ -637,22 +743,58 @@ export default function TenantDashboard() {
                 value={matchedProperties.length}
                 icon={Users}
               />
+              <StatsCard
+                title="New Tenants Registered Today"
+                value={
+                  tenants?.filter((p) => {
+                    if (!p.Submission_time) return false;
+
+                    const today = new Date();
+                    const submissionDate = new Date(p.Submission_time);
+
+                    return (
+                      submissionDate.getFullYear() === today.getFullYear() &&
+                      submissionDate.getMonth() === today.getMonth() &&
+                      submissionDate.getDate() === today.getDate()
+                    );
+                  }).length || 0
+                }
+                icon={Building2}
+              />
+              <StatsCard
+                title="Properties Offered to Tenants"
+                value={
+                  tenants?.filter((p) => p.Current_Status === "מוּצָע")
+                    .length || 0
+                }
+                icon={Building2}
+                onClick={() => navigate("/tenants?status=מוּצָע")}
+                className="cursor-pointer"
+              />
+              <StatsCard
+                title="Tenant Not relevant"
+                value={
+                  tenants?.filter((p) => p.Current_Status === "לא רלוונטי")
+                    .length || 0
+                }
+                icon={Building2}
+                onClick={() => navigate("/tenants?status=מוּצָע")}
+                className="cursor-pointer"
+              />
             </>
           )}
         </div>
 
         {/* Main Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-[250px_1fr_1fr] gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr_1fr] gap-4 lg:gap-6">
           {/* Sidebar Filters */}
-          <aside className="space-y-4 bg-white p-4 rounded shadow">
+          <aside className="space-y-4 bg-white p-4 rounded shadow h-fit">
             <h2 className="text-lg font-semibold">Filters</h2>
             {/* Same filters as before */}
 
             {/* Tenant Search */}
             <div>
-              <label className="block mb-1 text-sm font-small">
-                חפש דייר
-              </label>
+              <label className="block mb-1 text-sm font-small">חפש דייר</label>
               <input
                 type="text"
                 value={searchTerm}
@@ -663,7 +805,9 @@ export default function TenantDashboard() {
             </div>
 
             <div>
-              <label className="block mb-1 text-sm font-medium">חדרי שינה</label>
+              <label className="block mb-1 text-sm font-medium">
+                חדרי שינה
+              </label>
               <input
                 type="number"
                 min={0}
@@ -675,7 +819,9 @@ export default function TenantDashboard() {
               />
             </div>
             <div>
-              <label className="block mb-1 text-sm font-medium">לִשְׂכּוֹר (₪)</label>
+              <label className="block mb-1 text-sm font-medium">
+                לִשְׂכּוֹר (₪)
+              </label>
               <div className="flex gap-2">
                 <input
                   type="number"
@@ -699,7 +845,7 @@ export default function TenantDashboard() {
                 />
               </div>
             </div>
-            <div>
+            <div style={{ display: "none" }}>
               <label className="block mb-1 text-sm font-medium">
                 סטטוס דייר
               </label>
@@ -715,7 +861,7 @@ export default function TenantDashboard() {
                 <option value="Inactive">Inactive</option>
               </select>
             </div>
-            <div>
+            <div style={{ display: "none" }}>
               <label className="block mb-1 text-sm font-medium">
                 זמינות נכס
               </label>
@@ -732,6 +878,28 @@ export default function TenantDashboard() {
                 <option value="NA">NA</option>
               </select>
             </div>
+            <div>
+              <label className="block mb-1 text-sm font-medium">
+                סטטוס דייר
+              </label>
+              <select
+                value={filters.Current_Status}
+                onChange={(e) =>
+                  setFilters({
+                    ...filters,
+                    Current_Status: e.target.value,
+                  })
+                }
+                className="w-full border p-2 rounded"
+              >
+                <option value="all">All</option>
+                <option value="חָדָשׁ">חָדָשׁ</option>
+                <option value="מוּצָע">מוּצָע</option>
+                <option value="נִקרָא">נִקרָא</option>
+                <option value="מְתוּאָם">מְתוּאָם</option>
+                <option value="לא רלוונטי">לא רלוונטי</option>
+              </select>
+            </div>
 
             <Button
               onClick={() =>
@@ -741,6 +909,7 @@ export default function TenantDashboard() {
                   bedrooms: 0,
                   availability: "Available",
                   Status: "Active",
+                  Current_Status: "all",
                 })
               }
               className="w-full mt-2"
@@ -750,7 +919,7 @@ export default function TenantDashboard() {
           </aside>
 
           {/* Tenants */}
-          <ScrollArea className="h-[600px] pr-3">
+          <ScrollArea className="h-[65vh] lg:h-[600px] pr-2">
             {tLoading ? (
               <TenantCardSkeleton />
             ) : filteredTenants?.length === 0 ? (
@@ -772,7 +941,7 @@ export default function TenantDashboard() {
           </ScrollArea>
 
           {/* Properties */}
-          <ScrollArea className="h-[600px] pr-3">
+          <ScrollArea className="h-[65vh] lg:h-[600px] pr-2">
             {!selectedTenant ? (
               <EmptyState
                 icon={Building2}
