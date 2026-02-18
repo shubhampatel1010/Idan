@@ -219,6 +219,10 @@ export default function PropertyEdit() {
         data.Defects_and_repairs_to_be_carried_out;
     if (data.General_comments !== undefined)
       fields.General_comments = data.General_comments;
+    if (data.Instagram_link !== undefined)
+      fields.Instagram_link = data.Instagram_link;
+    if (data.TikTok_link !== undefined)
+      fields.TikTok_link = data.TikTok_link;
 
     const response = await fetch(
       `https://api.airtable.com/v0/${import.meta.env.VITE_AIRTABLE_BASE_ID}/${encodeURIComponent(
