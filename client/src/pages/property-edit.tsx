@@ -636,6 +636,20 @@ export default function PropertyEdit() {
               field="General_comments"
               type="text"
             />
+            <InputField
+              onChange={handleChange}
+              value={form.Instagram_link}
+              label="קישור לאינסטגרם"
+              field="Instagram_link"
+              type="text"
+            />
+            <InputField
+              onChange={handleChange}
+              value={form.TikTok_link}
+              label="קישור TikTok"
+              field="TikTok_link"
+              type="text"
+            />
           </CardContent>
         </Card>
 
